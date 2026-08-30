@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=3">
+    <link rel="stylesheet" href="styles.css?v=4">
   </head>
   <body>
     <header class="topbar">
@@ -17,7 +17,12 @@
         <span class="brand-mark">FS</span>
         <span>FPL Transfer Scout</span>
       </a>
-      <span id="freshness" class="freshness">Loading live model…</span>
+      <div class="topbar-actions">
+        <span id="freshness" class="freshness">Loading live model…</span>
+        <a class="fpl-link" href="https://fantasy.premierleague.com/my-team" target="_blank" rel="noopener noreferrer">
+          Open FPL <span aria-hidden="true">↗</span>
+        </a>
+      </div>
     </header>
 
     <main id="top" class="shell">
@@ -93,6 +98,6 @@
     <footer>
       Unofficial FPL decision support. Check late team news before confirming a transfer. No transfers are made automatically.
     </footer>
-    <script type="module" src="app.js?v=3"></script>
+    <script type="module" src="app.js?v=4"></script>
   </body>
 </html>
