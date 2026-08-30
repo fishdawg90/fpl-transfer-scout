@@ -67,6 +67,21 @@ function recentForm(player) {
   </section>`;
 }
 
+function priceMini(player) {
+  const forecast = player.priceForecast;
+  if (!forecast) return "";
+  if (forecast.direction === "locked") {
+    return `<div class="price-mini price-locked"><div class="price-mini-head"><span>Price locked</span><strong>Until ${new Date(forecast.lockedUntil).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</strong></div><div class="price-track"><span></span></div></div>`;
+  }
+  const symbol = forecast.direction === "rise" ? "↑" : forecast.direction === "fall" ? "↓" : "•";
+  const sign = value => `${value > 0 ? "+" : ""}${Number(value).toFixed(0)}%`;
+  const detail = `Official FPL price progress: ${sign(forecast.currentPercent)} now; ${sign(forecast.midnightPercent)} forecast for 00:00 UK. ${forecast.timingKind === "trend-estimate" ? "Timing beyond the official forecast window is extrapolated." : ""}`;
+  return `<div class="price-mini price-${forecast.direction}" title="${detail.trim()}">
+    <div class="price-mini-head"><span>Price ${symbol} ${sign(forecast.currentPercent)} → ${sign(forecast.midnightPercent)}</span><strong>${forecast.timing}</strong></div>
+    <div class="price-track" role="progressbar" aria-label="${Math.abs(forecast.midnightPercent).toFixed(0)} percent toward a price ${forecast.direction}" aria-valuenow="${forecast.meterPercent}" aria-valuemin="0" aria-valuemax="100"><span style="width:${forecast.meterPercent}%"></span></div>
+  </div>`;
+}
+
 function playerCard(player) {
   const fixtures = player.fixtures.map(fixture => `
     <div class="fixture" title="${fixture.label}: ${fixture.opponents}">
@@ -78,11 +93,10 @@ function playerCard(player) {
       .map(([key, value]) => `<div class="component"><span>${componentLabels[key] || key}</span><b>${signed(value)}</b></div>`).join("");
     return `<div class="gw-breakdown"><h4>${fixture.label} · ${fixture.opponents}</h4>${components || '<div class="component"><span>No fixture</span></div>'}</div>`;
   }).join("");
-  const risk = player.priceChangePercent <= -90 ? " · price fall risk" : "";
   return `
     <details class="player">
       <summary>
-        <div class="player-name"><strong>${player.name}</strong><span>${player.position} · ${player.teamName} · ${money(player.nowCost / 10)}${risk}</span></div>
+        <div class="player-name"><strong>${player.name}</strong><span>${player.position} · ${player.teamName} · ${money(player.nowCost / 10)}</span>${priceMini(player)}</div>
         <div class="fixtures">${fixtures}</div>
         <div class="player-total"><strong>${player.weighted5.toFixed(1)}</strong><span>weighted xPts</span></div>
       </summary>
@@ -121,7 +135,7 @@ function render(data) {
 
   $("#price-risks").innerHTML = data.alert.priceRisks.length
     ? data.alert.priceRisks.map(risk => `<div class="risk"><strong>${risk.name} · ${risk.projectedPercent}%</strong><p>${risk.recommendation}. ${risk.rationale}</p><p>${risk.saleValueAtRisk ? `${money(risk.saleValueAtRisk)} sale value at risk.` : "A fall would not yet reduce the calculated selling price."}</p></div>`).join("")
-    : '<p class="all-clear">No player in your squad is currently beyond the −90% evening risk threshold.</p>';
+    : '<p class="all-clear">No player in your squad is currently beyond the −90% threshold for tonight’s 00:00 UK price check.</p>';
   $("#roadmap").innerHTML = data.recommendation.roadmap.map(item => `<li><strong>${item.label}: ${item.action}</strong><span>${item.gain ? `${signed(item.gain)} xPts · ` : ""}${item.note}</span></li>`).join("");
   $("#model-notes").innerHTML = `
     <p class="quiet">${data.model.teamStrengthSource}. Learned from ${data.model.completedMatchesLearned} completed matches.</p>
