@@ -78,6 +78,12 @@ a { color: inherit; }
 h1 { max-width: 900px; margin: 0; font-size: clamp(2.6rem, 6vw, 6rem); line-height: .97; letter-spacing: -.055em; }
 h2 { margin: 0; font-size: clamp(1.25rem, 2vw, 1.7rem); line-height: 1.2; letter-spacing: -.025em; }
 .hero-copy { max-width: 720px; margin: 1.25rem 0 0; color: var(--muted); font-size: clamp(1rem, 1.6vw, 1.2rem); line-height: 1.65; }
+.action-wait h1 { color: var(--amber); }
+.action-act h1 { color: var(--lime); }
+.action-hold h1 { color: var(--mint); }
+.decision-facts { display: flex; flex-wrap: wrap; gap: .45rem; margin-top: 1.15rem; }
+.decision-fact { display: inline-flex; flex-wrap: wrap; gap: .35rem; padding: .48rem .62rem; border: 1px solid var(--line); border-radius: 9px; color: var(--muted); background: rgba(9, 34, 33, .7); font-size: .66rem; line-height: 1.35; }
+.decision-fact b { color: var(--ink); font: 500 .6rem "DM Mono", monospace; letter-spacing: .04em; text-transform: uppercase; }
 .deadline-card { min-width: 210px; padding: 1.2rem; border: 1px solid var(--line); border-radius: 18px; background: rgba(13, 44, 42, .72); box-shadow: var(--shadow); }
 .deadline-card strong { display: block; margin-top: .3rem; font-size: 1.05rem; }
 .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: .8rem; margin-bottom: .8rem; }
@@ -95,6 +101,12 @@ h2 { margin: 0; font-size: clamp(1.25rem, 2vw, 1.7rem); line-height: 1.2; letter
 .move .in { color: var(--lime); }
 .arrow { color: var(--muted); }
 .plan-stats { display: flex; flex-wrap: wrap; gap: .55rem; }
+.plan-actions { display: flex; flex-wrap: wrap; gap: .5rem; padding-top: .15rem; }
+.action-button { appearance: none; padding: .68rem .85rem; border: 1px solid rgba(182, 255, 92, .32); border-radius: 10px; background: var(--lime); color: #071512; cursor: pointer; font: 800 .72rem Manrope, sans-serif; }
+.action-button.secondary { border-color: var(--line); background: transparent; color: var(--muted); }
+.action-button:hover { filter: brightness(1.08); }
+.action-button:focus-visible { outline: 3px solid var(--purple); outline-offset: 2px; }
+.plan-paused { border-color: rgba(255, 200, 87, .3); }
 .lineup-role { color: var(--purple); }
 .gain { color: var(--lime); }
 .hold { color: var(--amber); }
