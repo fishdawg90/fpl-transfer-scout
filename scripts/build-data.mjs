@@ -461,6 +461,45 @@ async function main() {
   const playerRows = elements.map(element => {
     const summary = summaryById.get(element.id);
     const profile = playerProfile(element, summary);
+    const recentHistory = profile.history.slice(-5);
+    const recentMinutes = aggregate(recentHistory, "minutes");
+    const recentThreshold = profile.position === "DEF" ? 10 : 12;
+    const recentMatches = [...recentHistory].reverse().map(row => ({
+      event: row.round,
+      opponent: teams.get(row.opponent_team)?.short_name || "—",
+      venue: row.was_home ? "H" : "A",
+      kickoff: row.kickoff_time,
+      minutes: number(row.minutes),
+      started: number(row.starts) > 0,
+      points: number(row.total_points),
+      goals: number(row.goals_scored),
+      assists: number(row.assists),
+      xG: round(number(row.expected_goals), 2),
+      xA: round(number(row.expected_assists), 2),
+      cleanSheet: number(row.clean_sheets) > 0,
+      defensiveContributions: number(row.defensive_contribution),
+      defensiveContributionReturn: profile.position !== "GKP" && number(row.defensive_contribution) >= recentThreshold,
+      saves: number(row.saves),
+      bonus: number(row.bonus),
+      bps: number(row.bps),
+      yellow: number(row.yellow_cards),
+      red: number(row.red_cards)
+    }));
+    const recentSummary = {
+      matches: recentHistory.length,
+      starts: recentHistory.filter(row => number(row.starts) > 0).length,
+      minutes: recentMinutes,
+      averageMinutes: recentHistory.length ? round(recentMinutes / recentHistory.length, 0) : 0,
+      points: aggregate(recentHistory, "total_points"),
+      pointsPer90: recentMinutes ? round(aggregate(recentHistory, "total_points") * 90 / recentMinutes, 1) : 0,
+      xG: round(aggregate(recentHistory, "expected_goals"), 2),
+      xA: round(aggregate(recentHistory, "expected_assists"), 2),
+      xGI: round(aggregate(recentHistory, "expected_goals") + aggregate(recentHistory, "expected_assists"), 2),
+      goals: aggregate(recentHistory, "goals_scored"),
+      assists: aggregate(recentHistory, "assists"),
+      bonus: aggregate(recentHistory, "bonus"),
+      defensiveContributionReturns: profile.position === "GKP" ? 0 : recentHistory.filter(row => number(row.defensive_contribution) >= recentThreshold).length
+    };
     const fixtureRows = futureFixtures
       .filter(fixture => fixture.team_h === element.team || fixture.team_a === element.team)
       .map((fixture, index) => projectFixture(element, profile, fixture, teams, teamModels, index, scoring));
@@ -487,6 +526,28 @@ async function main() {
       currentSeasonWeight: round(profile.currentWeight * 100, 0),
       confidence: profile.confidence,
       rates: Object.fromEntries(Object.entries(profile.rates).map(([key, value]) => [key, round(value, 2)])),
+      recentSummary,
+      recentMatches,
+      seasonStats: {
+        minutes: number(element.minutes),
+        starts: number(element.starts),
+        points: number(element.total_points),
+        goals: number(element.goals_scored),
+        assists: number(element.assists),
+        xG: round(number(element.expected_goals), 2),
+        xA: round(number(element.expected_assists), 2),
+        cleanSheets: number(element.clean_sheets),
+        bonus: number(element.bonus)
+      },
+      previousSeason: profile.past ? {
+        season: profile.past.season_name,
+        minutes: number(profile.past.minutes),
+        points: number(profile.past.total_points),
+        goals: number(profile.past.goals_scored),
+        assists: number(profile.past.assists),
+        xG: round(number(profile.past.expected_goals), 2),
+        xA: round(number(profile.past.expected_assists), 2)
+      } : null,
       epNext: round(number(element.ep_next), 1),
       form: round(number(element.form), 1),
       selectedBy: round(number(element.selected_by_percent), 1),

@@ -101,6 +101,25 @@ h2 { margin: 0; font-size: clamp(1.25rem, 2vw, 1.7rem); line-height: 1.2; letter
 .component { display: flex; justify-content: space-between; gap: .6rem; padding: .14rem 0; color: var(--muted); font-size: .66rem; }
 .component b { color: var(--ink); font-weight: 600; }
 .profile-note { margin: .8rem 0 0; color: var(--muted); font-size: .72rem; }
+.recent-form { padding-top: 1rem; }
+.subheading { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+.subheading h3 { margin: 0; font-size: .9rem; }
+.subheading span { color: var(--muted); font-size: .65rem; }
+.future-heading { margin-top: 1.15rem; padding-top: 1rem; border-top: 1px solid var(--line); }
+.form-metrics { display: grid; grid-template-columns: repeat(6, 1fr); gap: .4rem; margin-top: .75rem; }
+.form-metrics div { min-width: 0; padding: .55rem .6rem; border-radius: 9px; background: var(--surface-2); }
+.form-metrics span, .form-metrics strong { display: block; }
+.form-metrics span { overflow: hidden; color: var(--muted); font-size: .59rem; text-overflow: ellipsis; white-space: nowrap; }
+.form-metrics strong { margin-top: .2rem; font-size: .85rem; }
+.form-table-wrap { margin-top: .55rem; overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+.form-table { width: 100%; min-width: 570px; border-collapse: collapse; font-size: .68rem; }
+.form-table th, .form-table td { padding: .46rem .55rem; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+.form-table th { color: var(--muted); background: rgba(4, 19, 19, .55); font-weight: 600; }
+.form-table th:nth-child(-n+2), .form-table td:nth-child(-n+2) { text-align: left; }
+.form-table tbody tr:last-child td { border-bottom: 0; }
+.return-good { color: var(--lime); }
+.return-low { color: var(--muted); }
+.evidence-line { display: flex; flex-wrap: wrap; gap: .35rem 1rem; margin-top: .55rem; color: var(--muted); font-size: .64rem; line-height: 1.45; }
 .alert-panel { border-color: rgba(255, 200, 87, .25); }
 .risk { margin-top: .75rem; padding: .85rem; border-radius: 12px; background: rgba(255, 114, 127, .08); border: 1px solid rgba(255, 114, 127, .2); }
 .risk strong { color: #ffb1b8; }
@@ -136,5 +155,7 @@ footer { padding: 1.5rem 5vw 3rem; color: var(--muted); text-align: center; font
   .fixtures { grid-column: 1 / -1; grid-row: 2; }
   .player-total { grid-column: 2; grid-row: 1; }
   .section-heading { align-items: start; flex-direction: column; }
+  .form-metrics { grid-template-columns: repeat(3, 1fr); }
+  .subheading { align-items: start; flex-direction: column; gap: .25rem; }
   h1 { font-size: clamp(2.5rem, 14vw, 4.2rem); }
 }

@@ -21,6 +21,52 @@ function relativeTime(iso) {
   return hours < 30 ? `${hours}h ago` : new Date(iso).toLocaleDateString("en-GB");
 }
 
+function recentForm(player) {
+  const recent = player.recentSummary;
+  const matches = player.recentMatches || [];
+  if (!recent || !matches.length) {
+    return '<section class="recent-form"><div class="subheading"><h3>Recent form</h3><span>No Premier League match sample yet</span></div><p class="quiet">This projection relies more heavily on positional rates and FPL’s temporary prior.</p></section>';
+  }
+  const defensiveLabel = player.position === "GKP" ? "Saves" : "DC";
+  const rows = matches.map(match => {
+    const defensiveValue = player.position === "GKP"
+      ? match.saves
+      : `${match.defensiveContributions}${match.defensiveContributionReturn ? " ✓" : ""}`;
+    const pointsClass = match.points >= 6 ? "return-good" : match.points <= 1 ? "return-low" : "";
+    return `<tr>
+      <td><b>GW${match.event}</b></td>
+      <td>${match.opponent} (${match.venue})</td>
+      <td>${match.minutes}${match.started ? "" : "*"}</td>
+      <td class="${pointsClass}"><b>${match.points}</b></td>
+      <td>${match.xG.toFixed(2)}</td>
+      <td>${match.xA.toFixed(2)}</td>
+      <td>${defensiveValue}</td>
+      <td>${match.bonus}</td>
+    </tr>`;
+  }).join("");
+  const previous = player.previousSeason
+    ? `<span>${player.previousSeason.season}: ${player.previousSeason.points} pts in ${player.previousSeason.minutes.toLocaleString()} min · ${(player.previousSeason.xG + player.previousSeason.xA).toFixed(1)} xGI</span>`
+    : '<span>No previous-Premier-League-season evidence; FPL ep_next is used as a fading prior.</span>';
+  return `<section class="recent-form">
+    <div class="subheading"><h3>Recent form</h3><span>Latest match first · * substitute appearance</span></div>
+    <div class="form-metrics">
+      <div><span>Last ${recent.matches} points</span><strong>${recent.points}</strong></div>
+      <div><span>Points / 90</span><strong>${recent.pointsPer90.toFixed(1)}</strong></div>
+      <div><span>Minutes / match</span><strong>${recent.averageMinutes}</strong></div>
+      <div><span>xGI</span><strong>${recent.xGI.toFixed(2)}</strong></div>
+      <div><span>G + A</span><strong>${recent.goals + recent.assists}</strong></div>
+      <div><span>Bonus</span><strong>${recent.bonus}</strong></div>
+    </div>
+    <div class="form-table-wrap">
+      <table class="form-table">
+        <thead><tr><th>GW</th><th>Fixture</th><th>Min</th><th>Pts</th><th>xG</th><th>xA</th><th>${defensiveLabel}</th><th>Bonus</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <div class="evidence-line"><span>This season: ${player.seasonStats.points} pts in ${player.seasonStats.minutes} min · ${(player.seasonStats.xG + player.seasonStats.xA).toFixed(2)} xGI</span>${previous}</div>
+  </section>`;
+}
+
 function playerCard(player) {
   const fixtures = player.fixtures.map(fixture => `
     <div class="fixture" title="${fixture.label}: ${fixture.opponents}">
@@ -41,6 +87,8 @@ function playerCard(player) {
         <div class="player-total"><strong>${player.weighted5.toFixed(1)}</strong><span>weighted xPts</span></div>
       </summary>
       <div class="breakdown">
+        ${recentForm(player)}
+        <div class="subheading future-heading"><h3>Future xPts ingredients</h3><span>Each fixture modelled independently</span></div>
         <div class="breakdown-grid">${breakdowns}</div>
         <p class="profile-note">${player.expectedMinutes} expected minutes · ${player.currentSeasonWeight}% current-season weighting · ${player.confidence} evidence confidence · xG/90 ${player.rates.xg} · xA/90 ${player.rates.xa} · DefCon/90 ${player.rates.defcon}</p>
       </div>
