@@ -4,6 +4,7 @@ import {
   GW_WEIGHTS,
   POSITION,
   clamp,
+  completedPlayerHistory,
   inferFreeTransfers,
   interpolateCurrentWeight,
   number,
@@ -109,10 +110,10 @@ function aggregate(rows, field) {
   return rows.reduce((sum, row) => sum + number(row[field]), 0);
 }
 
-function playerProfile(element, summary) {
-  const history = [...(summary?.history || [])].sort((a, b) => a.round - b.round);
+function playerProfile(element, summary, completedFixtureIds) {
+  const history = completedPlayerHistory(summary?.history, completedFixtureIds);
   const past = (summary?.history_past || []).find(row => row.season_name === "2025/26") || null;
-  const currentMinutes = number(element.minutes);
+  const currentMinutes = aggregate(history, "minutes");
   const pastMinutes = number(past?.minutes);
   const currentWeight = interpolateCurrentWeight(currentMinutes);
   const position = POSITION[element.element_type];
@@ -125,7 +126,7 @@ function playerProfile(element, summary) {
 
   const rate = field => {
     const prior = positionPriors[field] || 0;
-    const currentRate = currentMinutes > 0 ? number(element[field]) * 90 / currentMinutes : prior;
+    const currentRate = currentMinutes > 0 ? aggregate(history, field) * 90 / currentMinutes : prior;
     const rawPastRate = pastMinutes > 0 ? number(past[field]) * 90 / pastMinutes : prior;
     const pastCredibility = pastMinutes / (pastMinutes + 450);
     const pastRate = rawPastRate * pastCredibility + prior * (1 - pastCredibility);
@@ -145,8 +146,9 @@ function playerProfile(element, summary) {
   const pastRoleMinutes = pastMinutes >= 180
     ? clamp(pastMinutes / Math.max(1, pastAppearancesEstimate), 20, 90)
     : null;
+  const currentStarts = aggregate(history, "starts");
   const currentRoleMinutes = currentMinutes > 0
-    ? clamp(currentMinutes / Math.max(1, number(element.starts) + Math.max(0, history.filter(row => number(row.minutes) > 0 && !number(row.starts)).length)), 15, 90)
+    ? clamp(currentMinutes / Math.max(1, currentStarts + Math.max(0, history.filter(row => number(row.minutes) > 0 && !number(row.starts)).length)), 15, 90)
     : null;
   const rolePrior = pastRoleMinutes ?? currentRoleMinutes ?? (number(element.ep_next) >= 2.5 ? 65 : 20);
   if (recent.length) {
@@ -169,6 +171,7 @@ function playerProfile(element, summary) {
     position,
     history,
     past,
+    currentMinutes,
     currentWeight,
     expectedMinutes,
     playProbability,
@@ -229,7 +232,7 @@ function projectFixture(element, profile, fixture, teams, teamModels, index, sco
   }
   let xPts = Object.values(components).reduce((sum, value) => sum + value, 0);
   if (!profile.past && number(element.ep_next) > 0) {
-    const priorWeight = clamp(0.55 * (1 - number(element.minutes) / 600), 0, 0.55) * (0.35 ** index);
+    const priorWeight = clamp(0.55 * (1 - profile.currentMinutes / 600), 0, 0.55) * (0.35 ** index);
     const fplPrior = number(element.ep_next);
     components.prior = (fplPrior - xPts) * priorWeight;
     xPts += components.prior;
@@ -433,6 +436,108 @@ function priceRisk(player, edgePool) {
   };
 }
 
+function formatUkDateTime(date) {
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/London",
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZoneName: "short"
+  }).format(date);
+}
+
+function makeActionAdvice({ currentEvent, fixtures, recordedFixtureIds, plan, playersById, teams, priceRisks, nextEvent, generatedAt }) {
+  const currentFixtures = fixtures.filter(fixture => fixture.event === currentEvent.id);
+  const isComplete = fixture => fixture.finished || fixture.finished_provisional;
+  const completed = currentFixtures.filter(isComplete);
+  const live = currentFixtures.filter(fixture => fixture.started && !isComplete(fixture));
+  const upcoming = currentFixtures.filter(fixture => !fixture.started && !isComplete(fixture));
+  const remaining = [...live, ...upcoming].sort((a, b) => new Date(a.kickoff_time) - new Date(b.kickoff_time));
+  const captured = completed.filter(fixture => recordedFixtureIds.has(fixture.id));
+  const uncaptured = completed.filter(fixture => !recordedFixtureIds.has(fixture.id));
+  const fixtureLabel = fixture => `${teams.get(fixture.team_h)?.short_name || "—"} v ${teams.get(fixture.team_a)?.short_name || "—"}`;
+  const movePlayers = (plan?.moves || []).flatMap(move => [
+    { role: "out", player: playersById.get(move.out.id) },
+    { role: "in", player: playersById.get(move.in.id) }
+  ]).filter(item => item.player);
+  const pendingPlayers = movePlayers.filter(item => remaining.some(fixture => [fixture.team_h, fixture.team_a].includes(item.player.team)));
+  const urgentMoves = movePlayers.filter(({ role, player }) => {
+    const midnight = number(player.priceForecast?.midnightPercent);
+    return role === "out" ? midnight <= -90 : midnight >= 90;
+  });
+  const priceUrgent = urgentMoves.length > 0 || priceRisks.length > 0;
+  const deadline = nextEvent?.deadline_time ? new Date(nextEvent.deadline_time) : null;
+  const hoursToDeadline = deadline ? (deadline - generatedAt) / 3_600_000 : Infinity;
+  const lastRemaining = remaining.at(-1);
+  const reviewDate = lastRemaining?.kickoff_time
+    ? new Date(new Date(lastRemaining.kickoff_time).getTime() + 150 * 60_000)
+    : deadline && hoursToDeadline > 36
+      ? new Date(deadline.getTime() - 24 * 3_600_000)
+      : generatedAt;
+  const recentEvidence = movePlayers.map(({ player }) => {
+    const match = player.recentMatches?.find(item => item.event === currentEvent.id);
+    return match ? `${player.name}: ${match.points} pts, ${(match.xG + match.xA).toFixed(2)} xGI in ${match.minutes} min` : null;
+  }).filter(Boolean);
+
+  let level = "ready";
+  let label = "READY — latest matches are captured";
+  let summary = "The current recommendation uses the completed match data available from FPL.";
+  if (!plan) {
+    level = "hold";
+    label = "HOLD — no transfer is worth making yet";
+    summary = remaining.length
+      ? `There ${remaining.length === 1 ? "is" : "are"} still ${remaining.length} GW${currentEvent.id} ${remaining.length === 1 ? "match" : "matches"} to play, and no current move clears the expected-points threshold.`
+      : "No legal transfer currently adds enough expected points to justify using a free transfer.";
+  } else if (pendingPlayers.length && !priceUrgent) {
+    const names = [...new Set(pendingPlayers.map(item => item.player.name))].join(" and ");
+    const relevantFixtures = [...new Set(remaining.filter(fixture => pendingPlayers.some(item => [fixture.team_h, fixture.team_a].includes(item.player.team))).map(fixtureLabel))].join(", ");
+    level = "wait";
+    label = `WAIT — ${names} ${pendingPlayers.length === 1 ? "has" : "have"} not played yet`;
+    summary = `Do not act on this recommendation yet. ${relevantFixtures} can materially change the form, minutes and expected-points comparison.`;
+  } else if (live.length && !priceUrgent) {
+    level = "wait";
+    label = "WAIT — matches are live";
+    summary = `${live.map(fixtureLabel).join(", ")} ${live.length === 1 ? "is" : "are"} still in progress, so today's model is incomplete.`;
+  } else if (remaining.length && !priceUrgent) {
+    level = "wait";
+    label = `WAIT — GW${currentEvent.id} is not finished`;
+    summary = `${remaining.length} ${remaining.length === 1 ? "match remains" : "matches remain"}. The move players have finished, but another performance could still change the shortlist; there is no price reason to rush.`;
+  } else if (uncaptured.length) {
+    level = "wait";
+    label = "WAIT — results have not reached the model";
+    summary = `${uncaptured.length} completed ${uncaptured.length === 1 ? "match is" : "matches are"} still missing from player histories. Recheck after the next refresh.`;
+  } else if (priceUrgent) {
+    level = "act";
+    label = "ACT TONIGHT — price pressure outweighs waiting";
+    summary = `${urgentMoves.map(item => item.player.name).join(" and ") || "A squad player"} is near tonight's price threshold. Completed-match evidence is included, but check late news before confirming.`;
+  } else if (hoursToDeadline > 36) {
+    level = "wait";
+    label = "WAIT CLOSER TO THE DEADLINE";
+    summary = "The current match data is captured, but there is no price urgency. Waiting reduces the risk of injuries or team-news changes.";
+  }
+
+  return {
+    level,
+    label,
+    summary,
+    nextReview: reviewDate ? formatUkDateTime(reviewDate) : "After the next refresh",
+    priceStatus: priceUrgent ? "Price decision tonight" : "No price urgency tonight",
+    evidence: recentEvidence,
+    gameweek: {
+      event: currentEvent.id,
+      totalFixtures: currentFixtures.length,
+      completedFixtures: completed.length,
+      capturedFixtures: captured.length,
+      liveFixtures: live.map(fixture => ({ name: fixtureLabel(fixture), kickoff: fixture.kickoff_time })),
+      upcomingFixtures: upcoming.map(fixture => ({ name: fixtureLabel(fixture), kickoff: fixture.kickoff_time })),
+      dataChecked: Boolean(currentEvent.data_checked),
+      coverage: `${captured.length}/${currentFixtures.length} matches captured${remaining.length ? ` · ${remaining.length} still to play` : ""}`
+    }
+  };
+}
+
 function makeIssueMarkdown(data) {
   const risks = data.alert.priceRisks;
   const plan = data.recommendation.primary;
@@ -445,6 +550,10 @@ function makeIssueMarkdown(data) {
     "@fishdawg90 — your scheduled FPL price and transfer check is ready.",
     "",
     `**Team:** ${data.team.name} · **Next deadline:** ${data.nextDeadline.display} · **Free transfers:** ${data.team.freeTransfers} (inferred)`,
+    "",
+    "### When to act",
+    "",
+    `**${data.actionAdvice.label}** — ${data.actionAdvice.summary} Next review: **${data.actionAdvice.nextReview}**.`,
     "",
     "### Price risks tonight",
     "",
@@ -481,9 +590,11 @@ async function main() {
   const picks = await fetchJson(`/entry/${ENTRY_ID}/event/${currentEvent.id}/picks/`);
   const pickEvents = await mapLimit(Array.from({ length: currentEvent.id }, (_, index) => index + 1), 4, event => fetchJson(`/entry/${ENTRY_ID}/event/${event}/picks/`, true));
   const elements = bootstrap.elements.filter(element => !element.removed);
+  const completedFixtureIds = new Set(fixtures.filter(fixture => fixture.finished || fixture.finished_provisional).map(fixture => fixture.id));
   process.stdout.write(`Fetching ${elements.length} player summaries…\n`);
   const summaries = await mapLimit(elements, FETCH_CONCURRENCY, element => fetchJson(`/element-summary/${element.id}/`, true));
   const summaryById = new Map(elements.map((element, index) => [element.id, summaries[index] || { history: [], history_past: [], fixtures: [] }]));
+  const recordedFixtureIds = new Set(summaries.flatMap(summary => (summary?.history || []).map(row => number(row.fixture))));
   const teams = new Map(bootstrap.teams.map(team => [team.id, team]));
   const teamModels = makeTeamModels(bootstrap.teams, fixtures);
   const projectionEvents = bootstrap.events.filter(event => event.id > currentEvent.id).slice(0, 5);
@@ -497,7 +608,7 @@ async function main() {
   }
   const playerRows = elements.map(element => {
     const summary = summaryById.get(element.id);
-    const profile = playerProfile(element, summary);
+    const profile = playerProfile(element, summary, completedFixtureIds);
     const recentHistory = profile.history.slice(-5);
     const recentMinutes = aggregate(recentHistory, "minutes");
     const recentThreshold = profile.position === "DEF" ? 10 : 12;
@@ -566,15 +677,15 @@ async function main() {
       recentSummary,
       recentMatches,
       seasonStats: {
-        minutes: number(element.minutes),
-        starts: number(element.starts),
-        points: number(element.total_points),
-        goals: number(element.goals_scored),
-        assists: number(element.assists),
-        xG: round(number(element.expected_goals), 2),
-        xA: round(number(element.expected_assists), 2),
-        cleanSheets: number(element.clean_sheets),
-        bonus: number(element.bonus)
+        minutes: profile.currentMinutes,
+        starts: aggregate(profile.history, "starts"),
+        points: aggregate(profile.history, "total_points"),
+        goals: aggregate(profile.history, "goals_scored"),
+        assists: aggregate(profile.history, "assists"),
+        xG: round(aggregate(profile.history, "expected_goals"), 2),
+        xA: round(aggregate(profile.history, "expected_assists"), 2),
+        cleanSheets: aggregate(profile.history, "clean_sheets"),
+        bonus: aggregate(profile.history, "bonus")
       },
       previousSeason: profile.past ? {
         season: profile.past.season_name,
@@ -637,6 +748,7 @@ async function main() {
       ]
     : squad;
   const lineup = serialiseLineup(selectLineup(postTransferSquad, 0), nextEvent?.id, Boolean(optimisation.chosen));
+  const actionAdvice = makeActionAdvice({ currentEvent, fixtures, recordedFixtureIds, plan: optimisation.chosen, playersById, teams, priceRisks, nextEvent, generatedAt });
   const alertSeed = JSON.stringify({ day: generatedAt.toISOString().slice(0, 10), risks: priceRisks.map(risk => [risk.id, risk.projectedPercent, risk.recommendation]), plan: optimisation.chosen, captain: lineup?.captain.id, formation: lineup?.formation });
   const fingerprint = createHash("sha256").update(alertSeed).digest("hex").slice(0, 16);
   const data = {
@@ -658,6 +770,7 @@ async function main() {
       label: decision,
       explanation: "Weighted five-GW expected points chooses the move. Price-change risk only determines whether waiting until the deadline could cost value."
     },
+    actionAdvice,
     recommendation: { primary: optimisation.chosen, alternatives: optimisation.alternatives, roadmap, lineup },
     alert: {
       shouldNotify: priceRisks.length > 0,
@@ -673,6 +786,7 @@ async function main() {
       notes: [
         "Current and previous-season per-90 rates are blended progressively by current-season minutes.",
         "Expected minutes favour the five most recent fixtures and are reduced by FPL availability data.",
+        "Only completed or provisionally completed fixtures feed recent form; live and unplayed matches are excluded until their results appear in player histories.",
         "Every fixture is projected separately for goals, assists, clean sheets, defensive contributions, saves, bonus and deductions.",
         "Price progress and forward projections come from FPL's official predictor. Changes are assessed at 00:00 UK time; forecasts remain a guide, not a guarantee.",
         "The 8pm alert uses a cautious -90% threshold against tonight's forecast only.",
