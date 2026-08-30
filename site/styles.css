@@ -104,6 +104,17 @@ h2 { margin: 0; font-size: clamp(1.25rem, 2vw, 1.7rem); line-height: 1.2; letter
 .player-name { min-width: 0; }
 .player-name strong, .player-name span { display: block; }
 .player-name span { margin-top: .18rem; color: var(--muted); font-size: .73rem; }
+.price-mini { width: min(230px, 100%); margin-top: .48rem; }
+.price-mini-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .45rem; align-items: end; font: .59rem/1.2 "DM Mono", monospace; }
+.player-name .price-mini-head span { margin: 0; overflow: hidden; color: var(--muted); font-size: inherit; text-overflow: ellipsis; white-space: nowrap; }
+.price-mini-head strong { overflow: hidden; color: var(--ink); font-size: .59rem; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+.price-track { height: 4px; margin-top: .28rem; overflow: hidden; border-radius: 999px; background: rgba(158, 184, 177, .18); }
+.price-track > span { display: block; width: 0; height: 100%; border-radius: inherit; background: var(--muted); }
+.price-rise .price-track > span { background: var(--lime); }
+.price-fall .price-track > span { background: var(--red); }
+.price-rise .price-mini-head strong { color: var(--lime); }
+.price-fall .price-mini-head strong { color: #ffabb2; }
+.price-locked .price-track > span { width: 100%; background: var(--purple); opacity: .45; }
 .fixtures { display: grid; grid-template-columns: repeat(5, minmax(48px, 1fr)); gap: .35rem; }
 .fixture { padding: .45rem .3rem; border-radius: 8px; background: var(--surface-2); text-align: center; }
 .fixture span, .fixture strong { display: block; }
