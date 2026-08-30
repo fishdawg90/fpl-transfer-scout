@@ -4,6 +4,7 @@ import {
   inferFreeTransfers,
   interpolateCurrentWeight,
   poissonExpectedFloor,
+  priceForecast,
   sellingPrice,
   validatePlan,
   weightedTotal
@@ -19,6 +20,37 @@ test("season blend follows the requested anchor points", () => {
 test("FPL selling price keeps half of rises, rounded down", () => {
   assert.equal(sellingPrice(50, 53), 51);
   assert.equal(sellingPrice(50, 49), 49);
+});
+
+test("price forecast reports the first official midnight threshold crossing", () => {
+  const forecast = priceForecast(-89, [
+    { offset: 0, projected_percent: "-98.6" },
+    { offset: 1, projected_percent: "-126.8" },
+    { offset: 2, projected_percent: "-155.1" }
+  ]);
+  assert.equal(forecast.direction, "fall");
+  assert.equal(forecast.timing, "Tomorrow 00:00");
+  assert.equal(forecast.timingKind, "official-projection");
+});
+
+test("price forecast can cautiously extend a consistent three-day trend", () => {
+  const forecast = priceForecast(40, [
+    { offset: 0, projected_percent: "45" },
+    { offset: 1, projected_percent: "55" },
+    { offset: 2, projected_percent: "65" }
+  ]);
+  assert.equal(forecast.timing, "~6 days · 00:00");
+  assert.equal(forecast.timingKind, "trend-estimate");
+});
+
+test("price forecast does not extrapolate through a direction reversal", () => {
+  const forecast = priceForecast(25, [
+    { offset: 0, projected_percent: "17.8" },
+    { offset: 1, projected_percent: "-2.3" },
+    { offset: 2, projected_percent: "-16.3" }
+  ]);
+  assert.equal(forecast.direction, "steady");
+  assert.equal(forecast.timing, "Direction changing");
 });
 
 test("free transfers roll and respect paid transfers", () => {
