@@ -9,6 +9,7 @@ import {
   number,
   poissonExpectedFloor,
   poissonTail,
+  priceForecast,
   round,
   sellingPrice,
   validatePlan,
@@ -384,8 +385,8 @@ function makeRoadmap(chosen, edges, squad, bank, events) {
 }
 
 function priceRisk(player, edgePool) {
-  const projected = (player.priceProjections || []).map(item => number(item.projected_percent));
-  const lowest = Math.min(number(player.priceChangePercent), ...projected);
+  const tonightProjected = (player.priceProjections || []).find(item => number(item.offset) === 0)?.projected_percent;
+  const lowest = Math.min(number(player.priceChangePercent), number(tonightProjected, player.priceChangePercent));
   if (lowest > -90) return null;
   const afterFall = sellingPrice(player.purchasePrice, player.nowCost - 1);
   const valueLoss = Math.max(0, player.sellPrice - afterFall);
@@ -557,6 +558,7 @@ async function main() {
       priceHourlyRate: round(number(element.price_change_hourly_rate), 1),
       priceProjections: element.price_change_projections || [],
       priceLockedUntil: element.price_change_locked_until,
+      priceForecast: priceForecast(element.price_change_percent, element.price_change_projections, element.price_change_locked_until),
       fixtures: gameweeks,
       weighted5: round(weightedTotal(gameweeks), 2),
       raw5: round(gameweeks.reduce((sum, fixture) => sum + fixture.xPts, 0), 2)
@@ -628,7 +630,8 @@ async function main() {
         "Current and previous-season per-90 rates are blended progressively by current-season minutes.",
         "Expected minutes favour the five most recent fixtures and are reduced by FPL availability data.",
         "Every fixture is projected separately for goals, assists, clean sheets, defensive contributions, saves, bonus and deductions.",
-        "Price projections are official FPL fields; -90% is treated as the evening risk threshold.",
+        "Price progress and forward projections come from FPL's official predictor. Changes are assessed at 00:00 UK time; forecasts remain a guide, not a guarantee.",
+        "The 8pm alert uses a cautious -90% threshold against tonight's forecast only.",
         "Future-week roadmap moves are indicative and are re-optimised from fresh data every day."
       ]
     },
