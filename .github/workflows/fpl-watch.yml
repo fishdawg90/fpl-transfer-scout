@@ -8,6 +8,9 @@ on:
     # One is 20:05 during BST, the other during GMT. The alert step checks London time.
     - cron: "5 19 * * *"
     - cron: "5 20 * * *"
+    # A second refresh captures late matches. Only the 22:30 London run proceeds.
+    - cron: "30 21 * * *"
+    - cron: "30 22 * * *"
 
 permissions:
   contents: read
@@ -26,18 +29,32 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - name: Select the correct London-time schedule
+        id: schedule_gate
+        run: |
+          LONDON_HOUR=$(TZ=Europe/London date +%H)
+          if [ "$GITHUB_EVENT_NAME" != "schedule" ] || [ "$LONDON_HOUR" = "20" ] || [ "$LONDON_HOUR" = "22" ]; then
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/checkout@v5
+        if: steps.schedule_gate.outputs.should_run == 'true'
       - uses: actions/setup-node@v5
+        if: steps.schedule_gate.outputs.should_run == 'true'
         with:
           node-version: 22
       - name: Test model
+        if: steps.schedule_gate.outputs.should_run == 'true'
         run: npm test
       - name: Build latest projections
+        if: steps.schedule_gate.outputs.should_run == 'true'
         env:
           FPL_ENTRY_ID: "8927620"
           FPL_FREE_TRANSFERS: ${{ vars.FPL_FREE_TRANSFERS }}
         run: npm run build
       - name: Send or resolve the 8pm alert
+        if: steps.schedule_gate.outputs.should_run == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -48,9 +65,12 @@ jobs:
             echo "Skipping duplicate timezone run; it is not 20:00 in London."
           fi
       - uses: actions/configure-pages@v5
+        if: steps.schedule_gate.outputs.should_run == 'true'
       - uses: actions/upload-pages-artifact@v3
+        if: steps.schedule_gate.outputs.should_run == 'true'
         with:
           path: site
       - name: Deploy GitHub Pages
         id: deployment
+        if: steps.schedule_gate.outputs.should_run == 'true'
         uses: actions/deploy-pages@v4
