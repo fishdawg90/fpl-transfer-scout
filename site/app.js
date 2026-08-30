@@ -109,12 +109,35 @@ function playerCard(player) {
     </details>`;
 }
 
-function renderPlan(plan) {
+function renderPlan(plan, lineup) {
   if (!plan) {
     return `<div class="plan-card"><div class="move hold">Hold the squad and roll the transfer</div><p class="quiet">No legal move clears the minimum +0.75 net weighted-xPts threshold.</p></div>`;
   }
-  const moves = plan.moves.map(move => `<div class="move"><span class="out">${move.out.name}</span><span class="arrow">→</span><span class="in">${move.in.name}</span><span class="tag">${signed(move.xPtsGain)} xPts</span></div>`).join("");
+  const starters = new Set(lineup?.starters.map(player => player.id) || []);
+  const bench = new Map(lineup?.bench.map(player => [player.id, player.order]) || []);
+  const moves = plan.moves.map(move => {
+    const role = starters.has(move.in.id) ? `Starts GW${lineup.event}` : bench.has(move.in.id) ? `Bench ${bench.get(move.in.id)}` : "Squad cover";
+    return `<div class="move"><span class="out">${move.out.name}</span><span class="arrow">→</span><span class="in">${move.in.name}</span><span class="tag">${signed(move.xPtsGain)} xPts</span><span class="tag lineup-role">${role}</span></div>`;
+  }).join("");
   return `<div class="plan-card">${moves}<div class="plan-stats"><span class="tag gain">${signed(plan.netGain)} net weighted xPts</span><span class="tag">${plan.hitCost ? `${plan.hitCost}-point hit` : "No hit"}</span><span class="tag">${money(plan.bankAfter)} bank after</span></div></div>`;
+}
+
+function lineupPlayer(player, captainId, viceCaptainId) {
+  const badge = player.id === captainId ? '<b class="armband captain">C</b>' : player.id === viceCaptainId ? '<b class="armband vice">V</b>' : "";
+  return `<div class="lineup-player" title="${player.name} · ${player.opponent} · ${player.xPts.toFixed(1)} xPts">
+    <div><strong>${player.name}</strong>${badge}</div><span>${player.opponent} · ${player.xPts.toFixed(1)}</span>
+  </div>`;
+}
+
+function renderLineup(lineup) {
+  if (!lineup) return '<p class="quiet">A legal starting XI could not be produced.</p>';
+  const positions = [["GKP", "Goalkeeper"], ["DEF", "Defenders"], ["MID", "Midfielders"], ["FWD", "Forwards"]];
+  const groups = positions.map(([position, label]) => `<div class="lineup-group"><span class="position-label">${label}</span><div class="lineup-players">${lineup.starters.filter(player => player.position === position).map(player => lineupPlayer(player, lineup.captain.id, lineup.viceCaptain.id)).join("")}</div></div>`).join("");
+  const bench = lineup.bench.map(player => `<div class="bench-player"><span>${player.order === "GK" ? "GK" : `B${player.order}`}</span><strong>${player.name}</strong><small>${player.xPts.toFixed(1)} xPts</small></div>`).join("");
+  return `<div class="lineup-summary"><span>${lineup.afterTransfers ? "After recommended transfers" : "With the current squad"}</span><strong>${lineup.projectedPoints.toFixed(1)} projected points incl. captain</strong></div>
+    <div class="lineup-card">${groups}</div>
+    <div class="captain-call"><div><span>Captain</span><strong>${lineup.captain.name}</strong><small>${lineup.captain.xPts.toFixed(1)} xPts doubled</small></div><div><span>Vice-captain</span><strong>${lineup.viceCaptain.name}</strong><small>${lineup.viceCaptain.xPts.toFixed(1)} xPts</small></div></div>
+    <div class="bench"><span class="position-label">Bench order</span><div class="bench-list">${bench}</div></div>`;
 }
 
 function render(data) {
@@ -129,7 +152,9 @@ function render(data) {
     ["Squad value", money(data.team.squadValue)],
     ["Best net gain", `${signed(gain)} xPts`]
   ].map(([label, value]) => `<div class="metric"><span>${label}</span><strong>${value}</strong></div>`).join("");
-  $("#primary-plan").innerHTML = renderPlan(data.recommendation.primary);
+  $("#primary-plan").innerHTML = renderPlan(data.recommendation.primary, data.recommendation.lineup);
+  $("#lineup-formation").textContent = data.recommendation.lineup ? `GW${data.recommendation.lineup.event} · ${data.recommendation.lineup.formation}` : "";
+  $("#recommended-lineup").innerHTML = renderLineup(data.recommendation.lineup);
   $("#squad-list").innerHTML = [...data.squad].sort((a, b) => a.pickPosition - b.pickPosition).map(playerCard).join("");
   $("#target-list").innerHTML = [...data.targets].sort((a, b) => b.weighted5 - a.weighted5).map(playerCard).join("") || '<p class="quiet">No eligible targets in today\'s shortlist.</p>';
 
@@ -141,7 +166,7 @@ function render(data) {
     <p class="quiet">${data.model.teamStrengthSource}. Learned from ${data.model.completedMatchesLearned} completed matches.</p>
     ${data.model.teamStrengthFallbackActive ? '<div class="model-warning">FPL currently publishes zeroes for its attack/defence split fields, so the documented overall-strength fallback is active.</div>' : ""}
     <ul class="notes">${data.model.notes.map(note => `<li>${note}</li>`).join("")}</ul>
-    <p class="quiet">* Free transfers are inferred from public history; live transfers made after the last deadline are private.</p>`;
+    <p class="quiet">* Free transfers are inferred from public history and your GW${data.team.startedEvent} entry date; live transfers made after the last deadline are private.</p>`;
 }
 
 fetch("data/latest.json", { cache: "no-store" })
