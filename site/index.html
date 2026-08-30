@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=6">
+    <link rel="stylesheet" href="styles.css?v=7">
   </head>
   <body>
     <header class="topbar">
@@ -26,11 +26,12 @@
     </header>
 
     <main id="top" class="shell">
-      <section class="hero">
+      <section id="decision-hero" class="hero">
         <div>
           <p class="eyebrow">Expected points first · price urgency second</p>
           <h1 id="decision-title">Building your transfer plan…</h1>
           <p id="decision-copy" class="hero-copy">Fetching the latest FPL data.</p>
+          <div id="decision-facts" class="decision-facts"></div>
         </div>
         <div id="deadline-card" class="deadline-card"></div>
       </section>
@@ -109,6 +110,6 @@
     <footer>
       Unofficial FPL decision support. Check late team news before confirming a transfer. No transfers are made automatically.
     </footer>
-    <script type="module" src="app.js?v=6"></script>
+    <script type="module" src="app.js?v=7"></script>
   </body>
 </html>
