@@ -54,6 +54,24 @@ a { color: inherit; }
   font-size: .8rem;
 }
 .freshness, .quiet { color: var(--muted); font-size: .78rem; }
+.topbar-actions { display: flex; align-items: center; justify-content: flex-end; gap: .9rem; }
+.fpl-link {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .6rem .85rem;
+  border: 1px solid rgba(182, 255, 92, .34);
+  border-radius: 10px;
+  background: var(--lime);
+  color: #071512;
+  font-size: .78rem;
+  font-weight: 800;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.fpl-link:hover { background: #c7ff82; transform: translateY(-1px); }
+.fpl-link:focus-visible { outline: 3px solid var(--purple); outline-offset: 3px; }
 .shell { width: min(1380px, 92vw); margin: 0 auto; padding: 4.5rem 0 5rem; }
 .hero { display: grid; grid-template-columns: 1fr auto; gap: 2rem; align-items: end; margin-bottom: 2rem; }
 .eyebrow, .kicker { margin: 0 0 .65rem; color: var(--mint); font: 500 .72rem/1.2 "DM Mono", monospace; letter-spacing: .12em; text-transform: uppercase; }
@@ -148,7 +166,9 @@ footer { padding: 1.5rem 5vw 3rem; color: var(--muted); text-align: center; font
 
 @media (max-width: 620px) {
   .topbar { padding: 0 1rem; }
-  .freshness { max-width: 40%; text-align: right; }
+  .topbar-actions { gap: .55rem; }
+  .freshness { max-width: 9rem; overflow: hidden; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
+  .fpl-link { padding: .58rem .7rem; }
   .shell { width: min(94vw, 680px); padding-top: 2.6rem; }
   .metrics, .side-column { grid-template-columns: 1fr; }
   .side-column .panel:last-child { grid-column: auto; }
@@ -166,4 +186,8 @@ footer { padding: 1.5rem 5vw 3rem; color: var(--muted); text-align: center; font
   .form-table td, .form-table td:nth-child(-n+2) { display: flex; min-width: 0; flex-direction: column; gap: .12rem; padding: 0; border: 0; text-align: left; }
   .form-table td::before { content: attr(data-label); overflow: hidden; color: var(--muted); font-size: .52rem; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
   h1 { font-size: clamp(2.5rem, 14vw, 4.2rem); }
+}
+
+@media (max-width: 430px) {
+  .brand > span:last-child, .freshness { display: none; }
 }
