@@ -11,6 +11,7 @@ import {
   poissonTail,
   priceForecast,
   round,
+  selectLineup,
   sellingPrice,
   validatePlan,
   weightedTotal
@@ -296,6 +297,32 @@ function projectedSquadScore(squad, offset = 0) {
   return total;
 }
 
+function serialiseLineup(selection, event, afterTransfers) {
+  if (!selection) return null;
+  const playerRow = player => ({
+    id: player.id,
+    name: player.name,
+    position: player.position,
+    teamName: player.teamName,
+    opponent: player.fixtures[0]?.opponents || "—",
+    xPts: round(number(player.fixtures[0]?.xPts), 1),
+    expectedMinutes: player.expectedMinutes
+  });
+  return {
+    event,
+    formation: selection.formation,
+    afterTransfers,
+    projectedPoints: round(selection.projectedPoints, 1),
+    captain: playerRow(selection.captain),
+    viceCaptain: playerRow(selection.viceCaptain),
+    starters: selection.starters.map(playerRow),
+    bench: [
+      ...selection.benchOutfield.map((player, index) => ({ ...playerRow(player), order: index + 1 })),
+      ...(selection.benchGoalkeeper ? [{ ...playerRow(selection.benchGoalkeeper), order: "GK" }] : [])
+    ]
+  };
+}
+
 function optimiseTransfers(squad, allPlayers, bank, freeTransfers, teamLimit) {
   const edges = [];
   for (const outgoing of squad) {
@@ -409,6 +436,7 @@ function priceRisk(player, edgePool) {
 function makeIssueMarkdown(data) {
   const risks = data.alert.priceRisks;
   const plan = data.recommendation.primary;
+  const lineup = data.recommendation.lineup;
   const lines = [
     "<!-- fpl-transfer-scout -->",
     `<!-- fingerprint:${data.alert.fingerprint} -->`,
@@ -427,6 +455,12 @@ function makeIssueMarkdown(data) {
     plan
       ? `${plan.moves.map(move => `**${move.out.name} → ${move.in.name}**`).join(" and ")} · +${plan.netGain} net weighted xPts${plan.hitCost ? ` after a ${plan.hitCost}-point hit` : ""}.`
       : "**Hold / roll.** No legal move currently improves weighted five-GW xPts enough to justify acting.",
+    "",
+    `### GW${lineup?.event || "—"} lineup`,
+    "",
+    lineup
+      ? `**${lineup.formation}** · Captain **${lineup.captain.name}** · Vice **${lineup.viceCaptain.name}** · ${lineup.projectedPoints} projected points including captain.\n\nStarters: ${lineup.starters.map(player => player.name).join(", ")}.`
+      : "No legal lineup projection is available.",
     "",
     "Price only changes urgency; the recommendation is ranked by expected points first.",
     "",
@@ -569,7 +603,8 @@ async function main() {
   const currentHistory = history.current || [];
   const latestHistory = currentHistory.at(-1) || picks.entry_history || {};
   const override = process.env.FPL_FREE_TRANSFERS;
-  const freeTransfers = override ? number(override) : inferFreeTransfers(currentHistory, history.chips || [], number(bootstrap.game_settings?.max_extra_free_transfers, 4) + 1);
+  const startedEvent = number(entry.started_event, 1);
+  const freeTransfers = override ? number(override) : inferFreeTransfers(currentHistory, history.chips || [], number(bootstrap.game_settings?.max_extra_free_transfers, 4) + 1, startedEvent);
   const bank = number(latestHistory.bank ?? picks.entry_history?.bank);
   const optimisation = optimiseTransfers(squad, playerRows, bank, freeTransfers, number(bootstrap.game_settings?.squad_team_limit, 3));
   const priceRisks = squad.map(player => priceRisk(player, optimisation.edges)).filter(Boolean).sort((a, b) => a.projectedPercent - b.projectedPercent);
@@ -594,7 +629,15 @@ async function main() {
       targetIds.add(player.id);
       return true;
     });
-  const alertSeed = JSON.stringify({ day: generatedAt.toISOString().slice(0, 10), risks: priceRisks.map(risk => [risk.id, risk.projectedPercent, risk.recommendation]), plan: optimisation.chosen });
+  const outgoingIds = new Set(optimisation.chosen?.moves.map(move => move.out.id) || []);
+  const postTransferSquad = optimisation.chosen
+    ? [
+        ...squad.filter(player => !outgoingIds.has(player.id)),
+        ...optimisation.chosen.moves.map(move => playersById.get(move.in.id)).filter(Boolean)
+      ]
+    : squad;
+  const lineup = serialiseLineup(selectLineup(postTransferSquad, 0), nextEvent?.id, Boolean(optimisation.chosen));
+  const alertSeed = JSON.stringify({ day: generatedAt.toISOString().slice(0, 10), risks: priceRisks.map(risk => [risk.id, risk.projectedPercent, risk.recommendation]), plan: optimisation.chosen, captain: lineup?.captain.id, formation: lineup?.formation });
   const fingerprint = createHash("sha256").update(alertSeed).digest("hex").slice(0, 16);
   const data = {
     generatedAt: generatedAt.toISOString(),
@@ -607,14 +650,15 @@ async function main() {
       bank: bank / 10,
       squadValue: number(latestHistory.value) / 10,
       freeTransfers,
-      freeTransfersInferred: !override
+      freeTransfersInferred: !override,
+      startedEvent
     },
     nextDeadline: { event: nextEvent?.id, name: nextEvent?.name, iso: nextEvent?.deadline_time, display: displayDeadline },
     decision: {
       label: decision,
       explanation: "Weighted five-GW expected points chooses the move. Price-change risk only determines whether waiting until the deadline could cost value."
     },
-    recommendation: { primary: optimisation.chosen, alternatives: optimisation.alternatives, roadmap },
+    recommendation: { primary: optimisation.chosen, alternatives: optimisation.alternatives, roadmap, lineup },
     alert: {
       shouldNotify: priceRisks.length > 0,
       headline: priceRisks.length ? `${priceRisks.length} squad price ${priceRisks.length === 1 ? "risk" : "risks"} tonight` : "No squad price falls projected tonight",
