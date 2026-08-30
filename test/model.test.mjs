@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  completedPlayerHistory,
   inferFreeTransfers,
   interpolateCurrentWeight,
   poissonExpectedFloor,
@@ -21,6 +22,14 @@ test("season blend follows the requested anchor points", () => {
 test("FPL selling price keeps half of rises, rounded down", () => {
   assert.equal(sellingPrice(50, 53), 51);
   assert.equal(sellingPrice(50, 49), 49);
+});
+
+test("unplayed fixtures are excluded from recent player evidence", () => {
+  const rows = [
+    { round: 1, fixture: 10, minutes: 90 },
+    { round: 2, fixture: 20, minutes: 0 }
+  ];
+  assert.deepEqual(completedPlayerHistory(rows, new Set([10])), [rows[0]]);
 });
 
 test("price forecast reports the first official midnight threshold crossing", () => {
