@@ -68,7 +68,7 @@ h2 { margin: 0; font-size: clamp(1.25rem, 2vw, 1.7rem); line-height: 1.2; letter
 .metric strong { display: block; margin-top: .3rem; font-size: 1.45rem; }
 .layout { display: grid; grid-template-columns: minmax(0, 1.85fr) minmax(290px, .75fr); gap: .8rem; }
 .main-column, .side-column { display: grid; align-content: start; gap: .8rem; }
-.panel { overflow: hidden; padding: clamp(1.1rem, 2.5vw, 1.7rem); border: 1px solid var(--line); border-radius: 20px; background: rgba(9, 34, 33, .86); box-shadow: var(--shadow); }
+.panel { min-width: 0; overflow: hidden; padding: clamp(1.1rem, 2.5vw, 1.7rem); border: 1px solid var(--line); border-radius: 20px; background: rgba(9, 34, 33, .86); box-shadow: var(--shadow); }
 .section-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin-bottom: 1.3rem; }
 .method-pill, .tag { display: inline-flex; padding: .38rem .58rem; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); font: .68rem "DM Mono", monospace; white-space: nowrap; }
 .plan-card { display: grid; gap: .9rem; padding: 1.2rem; border-radius: 16px; background: linear-gradient(135deg, rgba(182, 255, 92, .1), rgba(82, 239, 177, .035)); border: 1px solid rgba(182, 255, 92, .24); }
@@ -79,8 +79,8 @@ h2 { margin: 0; font-size: clamp(1.25rem, 2vw, 1.7rem); line-height: 1.2; letter
 .plan-stats { display: flex; flex-wrap: wrap; gap: .55rem; }
 .gain { color: var(--lime); }
 .hold { color: var(--amber); }
-.player-list { display: grid; gap: .55rem; }
-.player { border: 1px solid var(--line); border-radius: 14px; background: rgba(4, 19, 19, .45); }
+.player-list { display: grid; min-width: 0; gap: .55rem; }
+.player { width: 100%; min-width: 0; max-width: 100%; border: 1px solid var(--line); border-radius: 14px; background: rgba(4, 19, 19, .45); }
 .player summary { display: grid; grid-template-columns: minmax(130px, 1.2fr) minmax(230px, 2fr) auto; gap: 1rem; align-items: center; padding: .9rem 1rem; cursor: pointer; list-style: none; }
 .player summary::-webkit-details-marker { display: none; }
 .player-name { min-width: 0; }
@@ -94,14 +94,14 @@ h2 { margin: 0; font-size: clamp(1.25rem, 2vw, 1.7rem); line-height: 1.2; letter
 .player-total { min-width: 58px; text-align: right; }
 .player-total strong { display: block; color: var(--lime); font-size: 1.15rem; }
 .player-total span { color: var(--muted); font-size: .62rem; }
-.breakdown { padding: 0 1rem 1rem; border-top: 1px solid var(--line); }
-.breakdown-grid { display: grid; grid-template-columns: repeat(5, minmax(130px, 1fr)); gap: .5rem; overflow-x: auto; padding-top: .85rem; }
-.gw-breakdown { min-width: 130px; padding: .7rem; border-radius: 10px; background: var(--surface-2); }
+.breakdown { width: 100%; min-width: 0; max-width: 100%; padding: 0 1rem 1rem; border-top: 1px solid var(--line); }
+.breakdown-grid { display: flex; width: 100%; min-width: 0; max-width: 100%; gap: .5rem; overflow-x: auto; overscroll-behavior-x: contain; padding: .85rem 0 .35rem; scrollbar-width: thin; touch-action: pan-x pan-y; -webkit-overflow-scrolling: touch; }
+.gw-breakdown { flex: 0 0 130px; min-width: 0; padding: .7rem; border-radius: 10px; background: var(--surface-2); }
 .gw-breakdown h4 { margin: 0 0 .5rem; font-size: .76rem; }
 .component { display: flex; justify-content: space-between; gap: .6rem; padding: .14rem 0; color: var(--muted); font-size: .66rem; }
 .component b { color: var(--ink); font-weight: 600; }
 .profile-note { margin: .8rem 0 0; color: var(--muted); font-size: .72rem; }
-.recent-form { padding-top: 1rem; }
+.recent-form { width: 100%; min-width: 0; max-width: 100%; padding-top: 1rem; }
 .subheading { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
 .subheading h3 { margin: 0; font-size: .9rem; }
 .subheading span { color: var(--muted); font-size: .65rem; }
@@ -111,7 +111,7 @@ h2 { margin: 0; font-size: clamp(1.25rem, 2vw, 1.7rem); line-height: 1.2; letter
 .form-metrics span, .form-metrics strong { display: block; }
 .form-metrics span { overflow: hidden; color: var(--muted); font-size: .59rem; text-overflow: ellipsis; white-space: nowrap; }
 .form-metrics strong { margin-top: .2rem; font-size: .85rem; }
-.form-table-wrap { margin-top: .55rem; overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+.form-table-wrap { width: 100%; min-width: 0; max-width: 100%; margin-top: .55rem; overflow-x: auto; overscroll-behavior-x: contain; border: 1px solid var(--line); border-radius: 10px; scrollbar-width: thin; touch-action: pan-x pan-y; -webkit-overflow-scrolling: touch; }
 .form-table { width: 100%; min-width: 570px; border-collapse: collapse; font-size: .68rem; }
 .form-table th, .form-table td { padding: .46rem .55rem; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
 .form-table th { color: var(--muted); background: rgba(4, 19, 19, .55); font-weight: 600; }
@@ -140,7 +140,8 @@ footer { padding: 1.5rem 5vw 3rem; color: var(--muted); text-align: center; font
   .hero { grid-template-columns: 1fr; align-items: start; }
   .deadline-card { width: fit-content; }
   .metrics { grid-template-columns: repeat(2, 1fr); }
-  .layout { grid-template-columns: 1fr; }
+  .layout, .main-column, .side-column { min-width: 0; }
+  .layout { grid-template-columns: minmax(0, 1fr); }
   .side-column { grid-row: 1; grid-template-columns: repeat(2, 1fr); }
   .side-column .panel:last-child { grid-column: 1 / -1; }
 }
@@ -157,5 +158,12 @@ footer { padding: 1.5rem 5vw 3rem; color: var(--muted); text-align: center; font
   .section-heading { align-items: start; flex-direction: column; }
   .form-metrics { grid-template-columns: repeat(3, 1fr); }
   .subheading { align-items: start; flex-direction: column; gap: .25rem; }
+  .form-table-wrap { overflow: visible; border: 0; }
+  .form-table { display: block; min-width: 0; }
+  .form-table thead { display: none; }
+  .form-table tbody { display: grid; gap: .45rem; }
+  .form-table tr { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .4rem; padding: .55rem; border: 1px solid var(--line); border-radius: 9px; background: var(--surface-2); }
+  .form-table td, .form-table td:nth-child(-n+2) { display: flex; min-width: 0; flex-direction: column; gap: .12rem; padding: 0; border: 0; text-align: left; }
+  .form-table td::before { content: attr(data-label); overflow: hidden; color: var(--muted); font-size: .52rem; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
   h1 { font-size: clamp(2.5rem, 14vw, 4.2rem); }
 }

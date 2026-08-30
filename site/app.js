@@ -34,14 +34,14 @@ function recentForm(player) {
       : `${match.defensiveContributions}${match.defensiveContributionReturn ? " ✓" : ""}`;
     const pointsClass = match.points >= 6 ? "return-good" : match.points <= 1 ? "return-low" : "";
     return `<tr>
-      <td><b>GW${match.event}</b></td>
-      <td>${match.opponent} (${match.venue})</td>
-      <td>${match.minutes}${match.started ? "" : "*"}</td>
-      <td class="${pointsClass}"><b>${match.points}</b></td>
-      <td>${match.xG.toFixed(2)}</td>
-      <td>${match.xA.toFixed(2)}</td>
-      <td>${defensiveValue}</td>
-      <td>${match.bonus}</td>
+      <td data-label="Gameweek"><b>GW${match.event}</b></td>
+      <td data-label="Fixture">${match.opponent} (${match.venue})</td>
+      <td data-label="Minutes">${match.minutes}${match.started ? "" : "*"}</td>
+      <td data-label="Points" class="${pointsClass}"><b>${match.points}</b></td>
+      <td data-label="xG">${match.xG.toFixed(2)}</td>
+      <td data-label="xA">${match.xA.toFixed(2)}</td>
+      <td data-label="${defensiveLabel}">${defensiveValue}</td>
+      <td data-label="Bonus">${match.bonus}</td>
     </tr>`;
   }).join("");
   const previous = player.previousSeason
@@ -88,7 +88,7 @@ function playerCard(player) {
       </summary>
       <div class="breakdown">
         ${recentForm(player)}
-        <div class="subheading future-heading"><h3>Future xPts ingredients</h3><span>Each fixture modelled independently</span></div>
+        <div class="subheading future-heading"><h3>Future xPts ingredients</h3><span>Each fixture modelled independently · swipe for later GWs</span></div>
         <div class="breakdown-grid">${breakdowns}</div>
         <p class="profile-note">${player.expectedMinutes} expected minutes · ${player.currentSeasonWeight}% current-season weighting · ${player.confidence} evidence confidence · xG/90 ${player.rates.xg} · xA/90 ${player.rates.xa} · DefCon/90 ${player.rates.defcon}</p>
       </div>

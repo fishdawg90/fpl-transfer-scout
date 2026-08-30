@@ -413,6 +413,8 @@ function makeIssueMarkdown(data) {
     `<!-- fingerprint:${data.alert.fingerprint} -->`,
     `## ${data.alert.headline}`,
     "",
+    "@fishdawg90 — your scheduled FPL price and transfer check is ready.",
+    "",
     `**Team:** ${data.team.name} · **Next deadline:** ${data.nextDeadline.display} · **Free transfers:** ${data.team.freeTransfers} (inferred)`,
     "",
     "### Price risks tonight",

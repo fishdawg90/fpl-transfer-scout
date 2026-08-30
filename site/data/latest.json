@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-30T13:58:45.210Z",
+  "generatedAt": "2026-08-30T14:05:14.722Z",
   "season": "2026/27",
   "entryId": 8927620,
   "team": {
@@ -336,9 +336,9 @@
             "xPtsGain": 10.9
           }
         ],
-        "rawGain": 31.2,
+        "rawGain": 31.1,
         "hitCost": 4,
-        "netGain": 27.2,
+        "netGain": 27.1,
         "bankAfter": 0.1
       }
     ],
@@ -371,7 +371,7 @@
     "headline": "No squad price falls projected tonight",
     "priceRisks": [],
     "fingerprint": "876730f93ececb18",
-    "issueMarkdown": "<!-- fpl-transfer-scout -->\n<!-- fingerprint:876730f93ececb18 -->\n## No squad price falls projected tonight\n\n**Team:** Ross's Team · **Next deadline:** Fri 4 Sept, 18:30 BST · **Free transfers:** 2 (inferred)\n\n### Price risks tonight\n\n\n### Expected-points decision\n\n**Maguire → Guéhi** and **Tzolis → Foden** and **Calafiori → Ajayi** · +27.4 net weighted xPts after a 4-point hit.\n\nPrice only changes urgency; the recommendation is ranked by expected points first.\n\n[Open the full dashboard](https://fishdawg90.github.io/fpl-transfer-scout/)"
+    "issueMarkdown": "<!-- fpl-transfer-scout -->\n<!-- fingerprint:876730f93ececb18 -->\n## No squad price falls projected tonight\n\n@fishdawg90 — your scheduled FPL price and transfer check is ready.\n\n**Team:** Ross's Team · **Next deadline:** Fri 4 Sept, 18:30 BST · **Free transfers:** 2 (inferred)\n\n### Price risks tonight\n\n\n### Expected-points decision\n\n**Maguire → Guéhi** and **Tzolis → Foden** and **Calafiori → Ajayi** · +27.4 net weighted xPts after a 4-point hit.\n\nPrice only changes urgency; the recommendation is ranked by expected points first.\n\n[Open the full dashboard](https://fishdawg90.github.io/fpl-transfer-scout/)"
   },
   "model": {
     "horizonWeights": [
@@ -1294,7 +1294,7 @@
         "xg": 0.21,
         "xa": 0.2,
         "bonus": 0.54,
-        "defcon": 7.28,
+        "defcon": 7.38,
         "saves": 0,
         "yellows": 0,
         "reds": 0,
@@ -1331,11 +1331,11 @@
           "xG": 0.14,
           "xA": 0.02,
           "cleanSheet": false,
-          "defensiveContributions": 4,
+          "defensiveContributions": 5,
           "defensiveContributionReturn": false,
           "saves": 0,
           "bonus": 0,
-          "bps": 6,
+          "bps": 8,
           "yellow": 0,
           "red": 0
         },
@@ -1478,11 +1478,11 @@
             "deductions": 0,
             "prior": 0.03
           },
-          "xPts": 2.98
+          "xPts": 2.99
         }
       ],
       "weighted5": 16.27,
-      "raw5": 17.81,
+      "raw5": 17.82,
       "pickPosition": 5,
       "captain": false,
       "multiplier": 1
@@ -8508,7 +8508,7 @@
         "xg": 0.57,
         "xa": 0.06,
         "bonus": 0.49,
-        "defcon": 5.5,
+        "defcon": 5.59,
         "saves": 0,
         "yellows": 0.15,
         "reds": 0,
@@ -8545,7 +8545,7 @@
           "xG": 0.04,
           "xA": 0.01,
           "cleanSheet": false,
-          "defensiveContributions": 2,
+          "defensiveContributions": 3,
           "defensiveContributionReturn": false,
           "saves": 0,
           "bonus": 0,
