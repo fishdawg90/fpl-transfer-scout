@@ -54,6 +54,81 @@ export function sellingPrice(purchasePrice, nowCost) {
   return bought + Math.floor((current - bought) / 2);
 }
 
+function priceTimingLabel(dayOffset, approximate = false) {
+  if (dayOffset <= 0) return "Tonight 00:00";
+  if (dayOffset === 1) return "Tomorrow 00:00";
+  return `${approximate ? "~" : "In "}${dayOffset} days · 00:00`;
+}
+
+export function priceForecast(currentPercent, projections = [], lockedUntil = null, now = new Date()) {
+  const current = round(number(currentPercent), 1);
+  const lockedDate = lockedUntil ? new Date(lockedUntil) : null;
+  if (lockedDate && Number.isFinite(lockedDate.getTime()) && lockedDate > new Date(now)) {
+    return {
+      direction: "locked",
+      currentPercent: current,
+      midnightPercent: current,
+      meterPercent: 0,
+      timing: "Price locked",
+      timingKind: "locked",
+      lockedUntil: lockedDate.toISOString()
+    };
+  }
+
+  const rows = projections
+    .map(item => ({ offset: Math.max(0, Math.round(number(item.offset))), percent: round(number(item.projected_percent), 1) }))
+    .filter(item => Number.isFinite(item.percent))
+    .sort((a, b) => a.offset - b.offset);
+  const tonight = rows.find(item => item.offset === 0)?.percent ?? current;
+  const lastProjection = rows.at(-1)?.percent ?? tonight;
+  const changingDirection = Math.abs(tonight) >= 2 && Math.abs(lastProjection) >= 2 && Math.sign(tonight) !== Math.sign(lastProjection);
+  const signal = Math.abs(tonight) >= 2 ? tonight : Math.abs(lastProjection) >= 2 ? lastProjection : current;
+  const direction = changingDirection ? "steady" : signal > 0 ? "rise" : signal < 0 ? "fall" : "steady";
+  const target = direction === "rise" ? 100 : direction === "fall" ? -100 : 0;
+  const crosses = value => direction === "rise" ? value >= target : direction === "fall" ? value <= target : false;
+  const firstCrossing = rows.find(item => crosses(item.percent));
+
+  let timing = "Not imminent";
+  let timingKind = "not-imminent";
+  let estimatedDays = null;
+  if (changingDirection) {
+    timing = "Direction changing";
+    timingKind = "reversing";
+  } else if (crosses(current) || firstCrossing) {
+    estimatedDays = crosses(current) ? 0 : firstCrossing.offset;
+    timing = priceTimingLabel(estimatedDays);
+    timingKind = "official-projection";
+  } else if (rows.length >= 2 && direction !== "steady") {
+    const first = rows[0];
+    const last = rows.at(-1);
+    const daySpan = Math.max(1, last.offset - first.offset);
+    const progressPerDay = (Math.abs(last.percent) - Math.abs(first.percent)) / daySpan;
+    if (progressPerDay > 0.5 && Math.abs(last.percent) >= 25) {
+      estimatedDays = Math.ceil(last.offset + (100 - Math.abs(last.percent)) / progressPerDay);
+      if (estimatedDays <= 7) {
+        timing = priceTimingLabel(estimatedDays, true);
+        timingKind = "trend-estimate";
+      } else {
+        timing = "7+ days";
+        timingKind = "trend-estimate";
+      }
+    } else if (rows.length) {
+      timing = `Not within ${rows.at(-1).offset + 1} days`;
+    }
+  }
+
+  return {
+    direction,
+    currentPercent: current,
+    midnightPercent: round(tonight, 1),
+    meterPercent: round(clamp(Math.abs(tonight), 0, 100), 1),
+    timing,
+    timingKind,
+    estimatedDays,
+    lockedUntil: null
+  };
+}
+
 export function inferFreeTransfers(historyRows, chips = [], maxFreeTransfers = 5) {
   const chipEvents = new Set(chips.filter(chip => ["wildcard", "freehit"].includes(chip.name)).map(chip => chip.event));
   let freeTransfers = 1;
