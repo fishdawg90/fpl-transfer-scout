@@ -5,6 +5,7 @@ import {
   interpolateCurrentWeight,
   poissonExpectedFloor,
   priceForecast,
+  selectLineup,
   sellingPrice,
   validatePlan,
   weightedTotal
@@ -59,6 +60,27 @@ test("free transfers roll and respect paid transfers", () => {
     { event: 3, event_transfers: 2, event_transfers_cost: 0 }
   ];
   assert.equal(inferFreeTransfers(rows, [], 5), 1);
+});
+
+test("a team starting in GW2 does not receive a GW1 rollover", () => {
+  const rows = [{ event: 2, event_transfers: 0, event_transfers_cost: 0 }];
+  assert.equal(inferFreeTransfers(rows, [], 5, 2), 1);
+});
+
+test("lineup selection uses a legal formation and names the best captain", () => {
+  let id = 0;
+  const make = (position, xPts) => ({ id: ++id, name: `P${id}`, position, expectedMinutes: 90, fixtures: [{ xPts }] });
+  const squad = [
+    make("GKP", 4), make("GKP", 2),
+    make("DEF", 5), make("DEF", 4), make("DEF", 3), make("DEF", 2), make("DEF", 1),
+    make("MID", 10), make("MID", 8), make("MID", 6), make("MID", 2), make("MID", 1),
+    make("FWD", 9), make("FWD", 7), make("FWD", 1)
+  ];
+  const lineup = selectLineup(squad);
+  assert.equal(lineup.formation, "4-4-2");
+  assert.equal(lineup.starters.length, 11);
+  assert.equal(lineup.captain.position, "MID");
+  assert.equal(lineup.benchOutfield.length, 3);
 });
 
 test("weighted total discounts later fixtures", () => {
