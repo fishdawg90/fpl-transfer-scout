@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#071b1b">
+    <meta name="description" content="Expected-points-first FPL transfer recommendations with official price-change alerts.">
+    <title>FPL Transfer Scout</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#top" aria-label="FPL Transfer Scout home">
+        <span class="brand-mark">FS</span>
+        <span>FPL Transfer Scout</span>
+      </a>
+      <span id="freshness" class="freshness">Loading live model…</span>
+    </header>
+
+    <main id="top" class="shell">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">Expected points first · price urgency second</p>
+          <h1 id="decision-title">Building your transfer plan…</h1>
+          <p id="decision-copy" class="hero-copy">Fetching the latest FPL data.</p>
+        </div>
+        <div id="deadline-card" class="deadline-card"></div>
+      </section>
+
+      <section id="metrics" class="metrics" aria-label="Team summary"></section>
+
+      <div class="layout">
+        <div class="main-column">
+          <section class="panel" aria-labelledby="recommendation-heading">
+            <div class="section-heading">
+              <div>
+                <p class="kicker">Recommendation</p>
+                <h2 id="recommendation-heading">Best move by weighted 5-GW xPts</h2>
+              </div>
+              <span class="method-pill">1.00 · .95 · .90 · .85 · .80</span>
+            </div>
+            <div id="primary-plan"></div>
+          </section>
+
+          <section class="panel" aria-labelledby="squad-heading">
+            <div class="section-heading">
+              <div>
+                <p class="kicker">Your squad</p>
+                <h2 id="squad-heading">Five-game projection</h2>
+              </div>
+              <span class="quiet">Tap a player for the ingredients</span>
+            </div>
+            <div id="squad-list" class="player-list"></div>
+          </section>
+
+          <section class="panel" aria-labelledby="targets-heading">
+            <div class="section-heading">
+              <div>
+                <p class="kicker">Shortlist</p>
+                <h2 id="targets-heading">Transfer targets</h2>
+              </div>
+              <span class="quiet">Legal candidates used by the optimiser</span>
+            </div>
+            <div id="target-list" class="player-list"></div>
+          </section>
+        </div>
+
+        <aside class="side-column">
+          <section class="panel alert-panel" aria-labelledby="price-heading">
+            <p class="kicker">Tonight at 8pm</p>
+            <h2 id="price-heading">Price watch</h2>
+            <div id="price-risks"></div>
+          </section>
+
+          <section class="panel" aria-labelledby="roadmap-heading">
+            <p class="kicker">Re-optimised daily</p>
+            <h2 id="roadmap-heading">Three-week roadmap</h2>
+            <ol id="roadmap" class="roadmap"></ol>
+          </section>
+
+          <section class="panel" aria-labelledby="model-heading">
+            <p class="kicker">Transparent model</p>
+            <h2 id="model-heading">How this score is made</h2>
+            <div id="model-notes"></div>
+          </section>
+        </aside>
+      </div>
+    </main>
+
+    <footer>
+      Unofficial FPL decision support. Check late team news before confirming a transfer. No transfers are made automatically.
+    </footer>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

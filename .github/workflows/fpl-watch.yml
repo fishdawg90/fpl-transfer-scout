@@ -1,0 +1,56 @@
+name: Build dashboard and check FPL prices
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    # One is 20:05 during BST, the other during GMT. The alert step checks London time.
+    - cron: "5 19 * * *"
+    - cron: "5 20 * * *"
+
+permissions:
+  contents: read
+  issues: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: fpl-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Test model
+        run: npm test
+      - name: Build latest projections
+        env:
+          FPL_ENTRY_ID: "8927620"
+          FPL_FREE_TRANSFERS: ${{ vars.FPL_FREE_TRANSFERS }}
+        run: npm run build
+      - name: Send or resolve the 8pm alert
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          LONDON_HOUR=$(TZ=Europe/London date +%H)
+          if [ "$GITHUB_EVENT_NAME" != "schedule" ] || [ "$LONDON_HOUR" = "20" ]; then
+            npm run alert
+          else
+            echo "Skipping duplicate timezone run; it is not 20:00 in London."
+          fi
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
