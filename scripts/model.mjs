@@ -129,11 +129,11 @@ export function priceForecast(currentPercent, projections = [], lockedUntil = nu
   };
 }
 
-export function inferFreeTransfers(historyRows, chips = [], maxFreeTransfers = 5) {
+export function inferFreeTransfers(historyRows, chips = [], maxFreeTransfers = 5, startedEvent = 1) {
   const chipEvents = new Set(chips.filter(chip => ["wildcard", "freehit"].includes(chip.name)).map(chip => chip.event));
   let freeTransfers = 1;
   const rows = [...historyRows].sort((a, b) => a.event - b.event);
-  for (const row of rows.filter(item => item.event >= 2)) {
+  for (const row of rows.filter(item => item.event > Math.max(1, number(startedEvent, 1)))) {
     if (!chipEvents.has(row.event)) {
       const transfers = number(row.event_transfers);
       const paid = Math.floor(number(row.event_transfers_cost) / 4);
@@ -143,6 +143,46 @@ export function inferFreeTransfers(historyRows, chips = [], maxFreeTransfers = 5
     freeTransfers = Math.min(maxFreeTransfers, freeTransfers + 1);
   }
   return freeTransfers;
+}
+
+export function selectLineup(squad, fixtureIndex = 0) {
+  const points = player => number(player.fixtures?.[fixtureIndex]?.xPts);
+  const rank = (a, b) => points(b) - points(a) || number(b.expectedMinutes) - number(a.expectedMinutes);
+  const byPosition = position => squad.filter(player => player.position === position).sort(rank);
+  const goalkeepers = byPosition("GKP");
+  if (!goalkeepers.length) return null;
+
+  let best = null;
+  for (let defenders = 3; defenders <= 5; defenders += 1) {
+    for (let midfielders = 2; midfielders <= 5; midfielders += 1) {
+      const forwards = 10 - defenders - midfielders;
+      if (forwards < 1 || forwards > 3) continue;
+      const starters = [
+        goalkeepers[0],
+        ...byPosition("DEF").slice(0, defenders),
+        ...byPosition("MID").slice(0, midfielders),
+        ...byPosition("FWD").slice(0, forwards)
+      ].filter(Boolean);
+      if (starters.length !== 11) continue;
+      const starterPoints = starters.reduce((sum, player) => sum + points(player), 0);
+      if (!best || starterPoints > best.starterPoints) {
+        best = { starters, starterPoints, formation: `${defenders}-${midfielders}-${forwards}` };
+      }
+    }
+  }
+  if (!best) return null;
+
+  const captainOrder = [...best.starters].sort(rank);
+  const starterIds = new Set(best.starters.map(player => player.id));
+  const benchOutfield = squad.filter(player => player.position !== "GKP" && !starterIds.has(player.id)).sort(rank);
+  return {
+    ...best,
+    captain: captainOrder[0],
+    viceCaptain: captainOrder[1],
+    benchGoalkeeper: goalkeepers.find(player => !starterIds.has(player.id)) || null,
+    benchOutfield,
+    projectedPoints: best.starterPoints + points(captainOrder[0])
+  };
 }
 
 export function weightedTotal(fixtures, offset = 0) {
