@@ -1,6 +1,7 @@
 const $ = selector => document.querySelector(selector);
 const signed = value => `${value > 0 ? "+" : ""}${Number(value).toFixed(1)}`;
 const money = value => `£${Number(value).toFixed(1)}m`;
+const LOCAL_SYNC_KEY = "fpl-transfer-scout-manual-sync-v1";
 const componentLabels = {
   appearance: "Appearance",
   goals: "Goals",
@@ -19,6 +20,24 @@ function relativeTime(iso) {
   if (minutes < 60) return `${minutes}m ago`;
   const hours = Math.round(minutes / 60);
   return hours < 30 ? `${hours}h ago` : new Date(iso).toLocaleDateString("en-GB");
+}
+
+function planSignature(plan) {
+  return (plan?.moves || []).map(move => `${move.out.id}-${move.in.id}`).sort().join("|");
+}
+
+function readManualSync(data) {
+  try {
+    const sync = JSON.parse(localStorage.getItem(LOCAL_SYNC_KEY));
+    if (!sync) return null;
+    if (sync.event !== data.recommendation.lineup?.event) {
+      localStorage.removeItem(LOCAL_SYNC_KEY);
+      return null;
+    }
+    return sync;
+  } catch {
+    return null;
+  }
 }
 
 function recentForm(player) {
@@ -109,7 +128,11 @@ function playerCard(player) {
     </details>`;
 }
 
-function renderPlan(plan, lineup) {
+function renderPlan(plan, lineup, manualSync) {
+  if (manualSync) {
+    const exact = manualSync.kind === "recommended" && manualSync.signature === planSignature(plan);
+    return `<div class="plan-card plan-paused"><div class="move hold">${exact ? "Recommended transfer marked as made" : "Squad change logged locally"}</div><p class="quiet">FPL does not expose transfers made during an open gameweek, so further recommendations are paused until the next deadline refresh.</p><button class="action-button secondary" id="undo-manual-sync" type="button">Undo local mark</button></div>`;
+  }
   if (!plan) {
     return `<div class="plan-card"><div class="move hold">Hold the squad and roll the transfer</div><p class="quiet">No legal move clears the minimum +0.75 net weighted-xPts threshold.</p></div>`;
   }
@@ -119,7 +142,8 @@ function renderPlan(plan, lineup) {
     const role = starters.has(move.in.id) ? `Starts GW${lineup.event}` : bench.has(move.in.id) ? `Bench ${bench.get(move.in.id)}` : "Squad cover";
     return `<div class="move"><span class="out">${move.out.name}</span><span class="arrow">→</span><span class="in">${move.in.name}</span><span class="tag">${signed(move.xPtsGain)} xPts</span><span class="tag lineup-role">${role}</span></div>`;
   }).join("");
-  return `<div class="plan-card">${moves}<div class="plan-stats"><span class="tag gain">${signed(plan.netGain)} net weighted xPts</span><span class="tag">${plan.hitCost ? `${plan.hitCost}-point hit` : "No hit"}</span><span class="tag">${money(plan.bankAfter)} bank after</span></div></div>`;
+  const plural = plan.moves.length === 1 ? "transfer" : "transfers";
+  return `<div class="plan-card">${moves}<div class="plan-stats"><span class="tag gain">${signed(plan.netGain)} net weighted xPts</span><span class="tag">${plan.hitCost ? `${plan.hitCost}-point hit` : "No hit"}</span><span class="tag">${money(plan.bankAfter)} bank after</span></div><div class="plan-actions"><button class="action-button" id="mark-plan-made" type="button">I made ${plan.moves.length === 1 ? "this" : "these"} ${plural}</button><button class="action-button secondary" id="mark-other-made" type="button">My change was different</button></div></div>`;
 }
 
 function lineupPlayer(player, captainId, viceCaptainId) {
@@ -129,7 +153,8 @@ function lineupPlayer(player, captainId, viceCaptainId) {
   </div>`;
 }
 
-function renderLineup(lineup) {
+function renderLineup(lineup, manualSync) {
+  if (manualSync?.kind === "different") return '<div class="model-warning">Lineup advice is paused because the public FPL squad no longer matches your real squad. It will resynchronise after the next deadline.</div>';
   if (!lineup) return '<p class="quiet">A legal starting XI could not be produced.</p>';
   const positions = [["GKP", "Goalkeeper"], ["DEF", "Defenders"], ["MID", "Midfielders"], ["FWD", "Forwards"]];
   const groups = positions.map(([position, label]) => `<div class="lineup-group"><span class="position-label">${label}</span><div class="lineup-players">${lineup.starters.filter(player => player.position === position).map(player => lineupPlayer(player, lineup.captain.id, lineup.viceCaptain.id)).join("")}</div></div>`).join("");
@@ -141,20 +166,38 @@ function renderLineup(lineup) {
 }
 
 function render(data) {
+  const manualSync = readManualSync(data);
+  const manualSyncExact = manualSync?.kind === "recommended" && manualSync.signature === planSignature(data.recommendation.primary);
+  const effectiveSync = manualSync && !manualSyncExact ? { ...manualSync, kind: "different" } : manualSync;
+  const advice = data.actionAdvice || { level: "ready", label: data.decision.label, summary: data.decision.explanation, nextReview: data.nextDeadline.display, priceStatus: "Price status unavailable", evidence: [], gameweek: { coverage: "Coverage unavailable" } };
+  const shownAdvice = manualSync ? {
+    ...advice,
+    level: "wait",
+    label: "TRANSFER LOGGED — WAIT",
+    summary: "Your real squad has changed, but FPL hides open-gameweek transfers from the public API. Do not act on another recommendation until the squad resynchronises after the deadline."
+  } : advice;
   $("#freshness").textContent = `Updated ${relativeTime(data.generatedAt)}`;
-  $("#decision-title").textContent = data.decision.label;
-  $("#decision-copy").textContent = data.decision.explanation;
+  $("#decision-title").textContent = shownAdvice.label;
+  $("#decision-copy").textContent = shownAdvice.summary;
+  $("#decision-hero").className = `hero action-${shownAdvice.level}`;
+  $("#decision-facts").innerHTML = [
+    ["Data", shownAdvice.gameweek.coverage],
+    ["Prices", shownAdvice.priceStatus],
+    ["Review", shownAdvice.nextReview],
+    ...(shownAdvice.evidence || []).slice(0, 2).map(item => ["Latest", item])
+  ].map(([label, value]) => `<span class="decision-fact"><b>${label}</b>${value}</span>`).join("");
   $("#deadline-card").innerHTML = `<span class="kicker">${data.nextDeadline.name || "Next deadline"}</span><strong>${data.nextDeadline.display}</strong>`;
   const gain = data.recommendation.primary?.netGain || 0;
+  const lineup = data.recommendation.lineup;
   $("#metrics").innerHTML = [
-    ["Free transfers", `${data.team.freeTransfers}${data.team.freeTransfersInferred ? "*" : ""}`],
-    ["Bank", money(data.team.bank)],
-    ["Squad value", money(data.team.squadValue)],
-    ["Best net gain", `${signed(gain)} xPts`]
+    ["Free transfers", manualSync ? "Used locally" : `${data.team.freeTransfers}${data.team.freeTransfersInferred ? "*" : ""}`],
+    ["Bank after move", effectiveSync?.kind === "different" ? "Unknown" : data.recommendation.primary ? money(data.recommendation.primary.bankAfter) : money(data.team.bank)],
+    ["Formation", effectiveSync?.kind === "different" ? "Paused" : lineup?.formation || "—"],
+    ["Captain", effectiveSync?.kind === "different" ? "Paused" : lineup?.captain.name || "—"]
   ].map(([label, value]) => `<div class="metric"><span>${label}</span><strong>${value}</strong></div>`).join("");
-  $("#primary-plan").innerHTML = renderPlan(data.recommendation.primary, data.recommendation.lineup);
+  $("#primary-plan").innerHTML = renderPlan(data.recommendation.primary, data.recommendation.lineup, effectiveSync);
   $("#lineup-formation").textContent = data.recommendation.lineup ? `GW${data.recommendation.lineup.event} · ${data.recommendation.lineup.formation}` : "";
-  $("#recommended-lineup").innerHTML = renderLineup(data.recommendation.lineup);
+  $("#recommended-lineup").innerHTML = renderLineup(data.recommendation.lineup, effectiveSync);
   $("#squad-list").innerHTML = [...data.squad].sort((a, b) => a.pickPosition - b.pickPosition).map(playerCard).join("");
   $("#target-list").innerHTML = [...data.targets].sort((a, b) => b.weighted5 - a.weighted5).map(playerCard).join("") || '<p class="quiet">No eligible targets in today\'s shortlist.</p>';
 
@@ -167,6 +210,19 @@ function render(data) {
     ${data.model.teamStrengthFallbackActive ? '<div class="model-warning">FPL currently publishes zeroes for its attack/defence split fields, so the documented overall-strength fallback is active.</div>' : ""}
     <ul class="notes">${data.model.notes.map(note => `<li>${note}</li>`).join("")}</ul>
     <p class="quiet">* Free transfers are inferred from public history and your GW${data.team.startedEvent} entry date; live transfers made after the last deadline are private.</p>`;
+
+  $("#mark-plan-made")?.addEventListener("click", () => {
+    localStorage.setItem(LOCAL_SYNC_KEY, JSON.stringify({ event: data.recommendation.lineup?.event, kind: "recommended", signature: planSignature(data.recommendation.primary), savedAt: new Date().toISOString() }));
+    render(data);
+  });
+  $("#mark-other-made")?.addEventListener("click", () => {
+    localStorage.setItem(LOCAL_SYNC_KEY, JSON.stringify({ event: data.recommendation.lineup?.event, kind: "different", savedAt: new Date().toISOString() }));
+    render(data);
+  });
+  $("#undo-manual-sync")?.addEventListener("click", () => {
+    localStorage.removeItem(LOCAL_SYNC_KEY);
+    render(data);
+  });
 }
 
 fetch("data/latest.json", { cache: "no-store" })
