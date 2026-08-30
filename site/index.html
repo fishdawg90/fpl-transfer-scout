@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=5">
+    <link rel="stylesheet" href="styles.css?v=6">
   </head>
   <body>
     <header class="topbar">
@@ -48,6 +48,17 @@
               <span class="method-pill">1.00 · .95 · .90 · .85 · .80</span>
             </div>
             <div id="primary-plan"></div>
+          </section>
+
+          <section class="panel" aria-labelledby="lineup-heading">
+            <div class="section-heading">
+              <div>
+                <p class="kicker">Next gameweek</p>
+                <h2 id="lineup-heading">Recommended starting XI</h2>
+              </div>
+              <span id="lineup-formation" class="method-pill"></span>
+            </div>
+            <div id="recommended-lineup"></div>
           </section>
 
           <section class="panel" aria-labelledby="squad-heading">
@@ -98,6 +109,6 @@
     <footer>
       Unofficial FPL decision support. Check late team news before confirming a transfer. No transfers are made automatically.
     </footer>
-    <script type="module" src="app.js?v=5"></script>
+    <script type="module" src="app.js?v=6"></script>
   </body>
 </html>
