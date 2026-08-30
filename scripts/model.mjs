@@ -54,6 +54,13 @@ export function sellingPrice(purchasePrice, nowCost) {
   return bought + Math.floor((current - bought) / 2);
 }
 
+export function completedPlayerHistory(historyRows, completedFixtureIds) {
+  const completed = completedFixtureIds instanceof Set ? completedFixtureIds : new Set(completedFixtureIds || []);
+  return [...(historyRows || [])]
+    .filter(row => completed.has(number(row.fixture)))
+    .sort((a, b) => number(a.round) - number(b.round));
+}
+
 function priceTimingLabel(dayOffset, approximate = false) {
   if (dayOffset <= 0) return "Tonight 00:00";
   if (dayOffset === 1) return "Tomorrow 00:00";
