@@ -6,8 +6,9 @@ An expected-points-first transfer adviser for FPL team **8927620**. It refreshes
 
 1. Project each player independently across the next five gameweeks.
 2. Optimise legal one-, two- and three-transfer plans using weighted xPts gain minus transfer-hit cost.
-3. Use official FPL price projections only as an urgency layer.
-4. Produce an indicative two-to-three-week roadmap, then rebuild it from scratch the next day.
+3. Select the best legal next-GW starting XI, captain, vice-captain and bench order after those transfers.
+4. Use official FPL price projections only as an urgency layer.
+5. Produce an indicative two-to-three-week roadmap, then rebuild it from scratch the next day.
 
 Later fixtures are discounted with weights `1.00, 0.95, 0.90, 0.85, 0.80`. The dashboard exposes the appearance, goals, assists, clean-sheet, defensive-contribution, save, bonus and deduction components for every fixture.
 
@@ -26,7 +27,7 @@ This is a transparent heuristic model, not a guarantee. Always check late injury
 
 The workflow runs at 20:05 Europe/London (using paired UTC schedules for BST/GMT), tests the model, rebuilds `site/data/latest.json`, sends or resolves a deduplicated GitHub issue alert, and deploys `site/` to Pages.
 
-GitHub cannot see transfers made during an open gameweek through the public FPL API. Free transfers are therefore inferred from deadline history. If needed, add a repository Actions variable named `FPL_FREE_TRANSFERS` to override the inferred number temporarily.
+GitHub cannot see transfers made during an open gameweek through the public FPL API. Free transfers are therefore inferred from deadline history and the entry's actual starting Gameweek. If needed, add a repository Actions variable named `FPL_FREE_TRANSFERS` to override the inferred number temporarily.
 
 ## Local use
 
