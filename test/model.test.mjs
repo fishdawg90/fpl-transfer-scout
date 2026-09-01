@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  captainScore,
   completedPlayerHistory,
   inferFreeTransfers,
   interpolateCurrentWeight,
@@ -90,6 +91,22 @@ test("lineup selection uses a legal formation and names the best captain", () =>
   assert.equal(lineup.starters.length, 11);
   assert.equal(lineup.captain.position, "MID");
   assert.equal(lineup.benchOutfield.length, 3);
+});
+
+test("captaincy favours attacking ceiling over a small goalkeeper xPts edge", () => {
+  let id = 0;
+  const make = (position, xPts, components = {}, expectedMinutes = 90) => ({ id: ++id, name: `P${id}`, position, expectedMinutes, fixtures: [{ xPts, components }] });
+  const goalkeeper = make("GKP", 7.1, { appearance: 2, cleanSheet: 1.95, saves: 0.69, bonus: 0.75, prior: 1.81 });
+  const forward = make("FWD", 6.7, { appearance: 2, goals: 3.24, assists: 0.26, bonus: 1.23, prior: 0 }, 88);
+  const squad = [
+    goalkeeper, make("GKP", 2),
+    make("DEF", 4), make("DEF", 4), make("DEF", 4), make("DEF", 3), make("DEF", 2),
+    make("MID", 5), make("MID", 5), make("MID", 4), make("MID", 3), make("MID", 2),
+    forward, make("FWD", 4), make("FWD", 3)
+  ];
+  const lineup = selectLineup(squad);
+  assert.equal(lineup.captain.id, forward.id);
+  assert.ok(captainScore(forward) > captainScore(goalkeeper));
 });
 
 test("weighted total discounts later fixtures", () => {
