@@ -17,6 +17,7 @@ Later fixtures are discounted with weights `1.00, 0.95, 0.90, 0.85, 0.80`. The d
 - Current and previous-season per-90 rates are blended according to current minutes.
 - Recent minutes and FPL availability data drive expected playing time.
 - Live and unplayed fixtures are excluded from recent form until FPL marks them completed and publishes their player histories.
+- Captaincy uses a separate risk-adjusted score: it removes uncertain `ep_next` priors and favours attacking upside and secure minutes, so a marginal goalkeeper xPts edge does not drive the armband.
 - Home/away opposition strength and completed results adjust attacking and clean-sheet projections.
 - Defensive contribution thresholds are 10 actions for defenders and 12 for midfielders/forwards.
 - New players with little or no Premier League history temporarily use `ep_next` as a partial prior.
