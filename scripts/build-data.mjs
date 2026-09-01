@@ -3,6 +3,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import {
   GW_WEIGHTS,
   POSITION,
+  captainScore,
   clamp,
   completedPlayerHistory,
   inferFreeTransfers,
@@ -294,7 +295,8 @@ function projectedSquadScore(squad, offset = 0) {
     if (!bestSelected.length) continue;
     const selectedIds = new Set(bestSelected.map(player => player.id));
     const benchCover = squad.filter(player => !selectedIds.has(player.id)).reduce((sum, player) => sum + points(player) * 0.1, 0);
-    const captainBonus = Math.max(...bestSelected.map(points));
+    const captain = [...bestSelected].sort((a, b) => captainScore(b, gwIndex) - captainScore(a, gwIndex))[0];
+    const captainBonus = points(captain);
     total += (best + benchCover + captainBonus) * GW_WEIGHTS[gwIndex - offset];
   }
   return total;
@@ -318,6 +320,7 @@ function serialiseLineup(selection, event, afterTransfers) {
     projectedPoints: round(selection.projectedPoints, 1),
     captain: playerRow(selection.captain),
     viceCaptain: playerRow(selection.viceCaptain),
+    captainRationale: `${round(number(selection.captain.fixtures[0]?.components?.goals) + number(selection.captain.fixtures[0]?.components?.assists), 1)} attacking xPts · ${selection.captain.expectedMinutes} projected min`,
     starters: selection.starters.map(playerRow),
     bench: [
       ...selection.benchOutfield.map((player, index) => ({ ...playerRow(player), order: index + 1 })),
@@ -787,6 +790,7 @@ async function main() {
         "Current and previous-season per-90 rates are blended progressively by current-season minutes.",
         "Expected minutes favour the five most recent fixtures and are reduced by FPL availability data.",
         "Only completed or provisionally completed fixtures feed recent form; live and unplayed matches are excluded until their results appear in player histories.",
+        "Captaincy is ranked separately from lineup xPts: uncertain FPL priors are removed and attacking upside, minutes security and positional risk are considered.",
         "Every fixture is projected separately for goals, assists, clean sheets, defensive contributions, saves, bonus and deductions.",
         "Price progress and forward projections come from FPL's official predictor. Changes are assessed at 00:00 UK time; forecasts remain a guide, not a guarantee.",
         "The 8pm alert uses a cautious -90% threshold against tonight's forecast only.",
