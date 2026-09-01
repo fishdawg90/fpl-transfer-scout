@@ -152,6 +152,17 @@ export function inferFreeTransfers(historyRows, chips = [], maxFreeTransfers = 5
   return freeTransfers;
 }
 
+export function captainScore(player, fixtureIndex = 0) {
+  const fixture = player.fixtures?.[fixtureIndex] || {};
+  const components = fixture.components || {};
+  const modelPointsWithoutPrior = number(fixture.xPts) - number(components.prior);
+  const attackingUpside = Math.max(0, number(components.goals)) + Math.max(0, number(components.assists));
+  const bonusUpside = Math.max(0, number(components.bonus));
+  const reliability = clamp((number(player.expectedMinutes) - 45) / 45, 0, 1);
+  const positionAdjustment = { GKP: -1.5, DEF: -0.45, MID: 0.4, FWD: 0.4 }[player.position] || 0;
+  return (modelPointsWithoutPrior + attackingUpside * 0.35 + bonusUpside * 0.1) * (0.8 + reliability * 0.2) + positionAdjustment;
+}
+
 export function selectLineup(squad, fixtureIndex = 0) {
   const points = player => number(player.fixtures?.[fixtureIndex]?.xPts);
   const rank = (a, b) => points(b) - points(a) || number(b.expectedMinutes) - number(a.expectedMinutes);
@@ -179,13 +190,15 @@ export function selectLineup(squad, fixtureIndex = 0) {
   }
   if (!best) return null;
 
-  const captainOrder = [...best.starters].sort(rank);
+  const captainOrder = [...best.starters].sort((a, b) => captainScore(b, fixtureIndex) - captainScore(a, fixtureIndex) || rank(a, b));
   const starterIds = new Set(best.starters.map(player => player.id));
   const benchOutfield = squad.filter(player => player.position !== "GKP" && !starterIds.has(player.id)).sort(rank);
   return {
     ...best,
     captain: captainOrder[0],
     viceCaptain: captainOrder[1],
+    captainScore: captainScore(captainOrder[0], fixtureIndex),
+    viceCaptainScore: captainScore(captainOrder[1], fixtureIndex),
     benchGoalkeeper: goalkeepers.find(player => !starterIds.has(player.id)) || null,
     benchOutfield,
     projectedPoints: best.starterPoints + points(captainOrder[0])
