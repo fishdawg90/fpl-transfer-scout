@@ -161,7 +161,7 @@ function renderLineup(lineup, manualSync) {
   const bench = lineup.bench.map(player => `<div class="bench-player"><span>${player.order === "GK" ? "GK" : `B${player.order}`}</span><strong>${player.name}</strong><small>${player.xPts.toFixed(1)} xPts</small></div>`).join("");
   return `<div class="lineup-summary"><span>${lineup.afterTransfers ? "After recommended transfers" : "With the current squad"}</span><strong>${lineup.projectedPoints.toFixed(1)} projected points incl. captain</strong></div>
     <div class="lineup-card">${groups}</div>
-    <div class="captain-call"><div><span>Captain</span><strong>${lineup.captain.name}</strong><small>${lineup.captain.xPts.toFixed(1)} xPts doubled</small></div><div><span>Vice-captain</span><strong>${lineup.viceCaptain.name}</strong><small>${lineup.viceCaptain.xPts.toFixed(1)} xPts</small></div></div>
+    <div class="captain-call"><div><span>Captain · risk-adjusted</span><strong>${lineup.captain.name}</strong><small>${lineup.captain.xPts.toFixed(1)} xPts doubled · ${lineup.captainRationale || "attacking ceiling prioritised"}</small></div><div><span>Vice-captain</span><strong>${lineup.viceCaptain.name}</strong><small>${lineup.viceCaptain.xPts.toFixed(1)} xPts</small></div></div>
     <div class="bench"><span class="position-label">Bench order</span><div class="bench-list">${bench}</div></div>`;
 }
 
